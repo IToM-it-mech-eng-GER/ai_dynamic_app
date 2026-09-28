@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Vergleiche ein bis drei ETF-Sparpläne anhand eigener Rendite- und Kostenannahmen."
+      content="Vergleiche ein bis drei ETF-Sparpläne von der Anspar- bis zur Entnahmephase."
     />
     <meta name="referrer" content="no-referrer" />
     <meta
@@ -15,7 +15,7 @@
     <title>Renditeatlas – ETF-Sparpläne vergleichen</title>
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231b2b27'/%3E%3Cpath d='M15 43 27 31l8 7 14-17' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23070f20'/%3E%3Cpath d='M15 43 27 31l8 7 14-17' fill='none' stroke='%23ff6b16' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
@@ -23,41 +23,29 @@
     <a class="skip-link" href="#main-content">Direkt zum Inhalt</a>
 
     <header class="app-header">
-      <div class="header-inner">
-        <a class="brand" href="#main-content" aria-label="Renditeatlas – zur Übersicht">
-          <span class="brand-mark" aria-hidden="true">R↗</span>
-          <span>
-            <strong>Renditeatlas</strong>
-            <small>ETF-Sparplanvergleich</small>
-          </span>
-        </a>
-        <div class="header-actions">
-          <span class="local-badge">Lokal berechnet</span>
-          <button class="icon-button" id="reset-button" type="button">
-            <span aria-hidden="true">↺</span>
-            Zurücksetzen
-          </button>
-        </div>
+      <a class="brand" href="#main-content" aria-label="Renditeatlas – zur Übersicht">
+        <span class="brand-mark" aria-hidden="true">R↗</span>
+        <span><strong>Renditeatlas</strong><small>ETF-Vergleich</small></span>
+      </a>
+      <nav class="view-tabs" aria-label="Auswertung">
+        <a href="#chart-title" aria-current="page">Ablaufleistungen</a>
+        <a href="#comparison-title">Vergleich</a>
+      </nav>
+      <div class="header-actions">
+        <span class="local-badge">Lokal berechnet</span>
+        <button class="icon-button" id="reset-button" type="button" aria-label="Alle Eingaben zurücksetzen">
+          <span aria-hidden="true">↺</span><span class="button-label">Zurücksetzen</span>
+        </button>
       </div>
     </header>
 
     <main id="main-content" tabindex="-1">
-      <section class="page-intro" aria-labelledby="page-title">
-        <div>
-          <p class="eyebrow">Sparpläne auf einen Blick</p>
-          <h1 id="page-title">Welche Annahme bringt dich weiter?</h1>
-        </div>
-        <p>
-          Vergleiche bis zu drei Szenarien mit eigenen Sparraten, Renditen und Kosten.
-        </p>
-      </section>
-
-      <div class="dashboard">
+      <div class="dashboard" id="dashboard">
         <section class="workspace" aria-label="Vergleich und Entwicklung">
-          <div class="section-heading">
+          <div class="workspace-heading">
             <div>
               <p class="eyebrow">Deine Szenarien</p>
-              <h2>Vermögensvergleich</h2>
+              <h1>Vermögensvergleich</h1>
             </div>
             <p><span id="product-count">2</span> von 3 Produkten</p>
           </div>
@@ -68,11 +56,11 @@
             <div class="chart-heading">
               <div>
                 <p class="eyebrow">Wertentwicklung</p>
-                <h2 id="chart-title">Vermögen über die Laufzeit</h2>
+                <h2 id="chart-title">Vermögen nach Alter</h2>
               </div>
               <div class="chart-period">
-                <span>Anlagehorizont</span>
-                <strong><span id="chart-years">30</span> Jahre</strong>
+                <span>Modellzeitraum</span>
+                <strong id="chart-range">37 bis 85 Jahre</strong>
               </div>
             </div>
             <div class="chart-scroll">
@@ -84,15 +72,16 @@
                 aria-labelledby="chart-title chart-description"
               ></svg>
             </div>
+            <div class="chart-legend" aria-hidden="true">
+              <span><i class="legend-line"></i>Vermögen</span>
+              <span><i class="legend-line dashed"></i>Einzahlungen</span>
+            </div>
             <p class="sr-only" id="chart-description" aria-live="polite"></p>
           </section>
 
           <section class="comparison-panel" aria-labelledby="comparison-title">
             <div class="section-heading compact">
-              <div>
-                <p class="eyebrow">Ergebnisübersicht</p>
-                <h2 id="comparison-title">Direkter Vergleich</h2>
-              </div>
+              <div><p class="eyebrow">Ergebnisübersicht</p><h2 id="comparison-title">Direkter Vergleich</h2></div>
             </div>
             <div class="table-scroll">
               <table>
@@ -100,9 +89,9 @@
                   <tr>
                     <th scope="col">Produkt</th>
                     <th scope="col">Einzahlungen</th>
-                    <th scope="col">Wertzuwachs</th>
-                    <th scope="col">Endvermögen</th>
-                    <th scope="col">Rendite nach Kosten</th>
+                    <th scope="col">Zur Rente</th>
+                    <th scope="col">Entnahmen</th>
+                    <th scope="col">Am Lebensende</th>
                   </tr>
                 </thead>
                 <tbody id="comparison-body"></tbody>
@@ -111,81 +100,141 @@
           </section>
         </section>
 
-        <aside class="settings-panel" aria-labelledby="settings-title">
+        <button class="settings-open" id="settings-open" type="button" hidden>
+          <span aria-hidden="true">‹</span> Eingaben öffnen
+        </button>
+
+        <aside class="settings-panel" id="settings-panel" aria-labelledby="settings-title">
           <div class="settings-heading">
-            <div>
-              <p class="eyebrow">Eingaben</p>
-              <h2 id="settings-title">Sparplan einstellen</h2>
-            </div>
-            <span id="selected-position">1 von 2</span>
+            <div><p class="eyebrow">Eingaben</p><h2 id="settings-title">Parameter</h2></div>
+            <button
+              class="panel-toggle"
+              id="settings-toggle"
+              type="button"
+              aria-expanded="true"
+              aria-controls="settings-content"
+            >
+              <span class="sr-only">Eingaben einklappen</span><span aria-hidden="true">›</span>
+            </button>
           </div>
 
-          <section class="horizon-control" aria-labelledby="horizon-title">
-            <div class="control-heading">
-              <h3 id="horizon-title">Gemeinsame Laufzeit</h3>
-              <output id="horizon-output" for="horizon-input">30 Jahre</output>
-            </div>
-            <label class="sr-only" for="horizon-input">Gemeinsame Laufzeit in Jahren</label>
-            <input id="horizon-input" type="range" min="1" max="50" step="1" value="30" />
-            <div class="range-labels" aria-hidden="true"><span>1 Jahr</span><span>50 Jahre</span></div>
-          </section>
+          <div class="settings-content" id="settings-content">
+            <form id="settings-form" autocomplete="off">
+              <div class="wizard-viewport" id="wizard-viewport">
+                <div class="wizard-track" id="wizard-track">
+                  <section class="wizard-step" data-step="0" aria-labelledby="step-personal-title">
+                    <header class="step-heading">
+                      <span class="step-kicker">Grundlage</span>
+                      <h3 id="step-personal-title" tabindex="-1">Persönliche Parameter</h3>
+                      <p>Diese Angaben bestimmen Anspar- und Entnahmezeitraum.</p>
+                    </header>
+                    <div class="field-list">
+                      <label class="row-field" for="current-age"><span>Alter</span><span class="input-with-unit"><input id="current-age" data-scenario-field="currentAge" type="number" min="18" max="99" step="1" inputmode="numeric" /><i>Jahre</i></span></label>
+                      <label class="row-field" for="retirement-age"><span>Rentenbeginn</span><span class="input-with-unit"><input id="retirement-age" data-scenario-field="retirementAge" type="number" min="19" max="100" step="1" inputmode="numeric" /><i>Jahre</i></span></label>
+                      <label class="row-field" for="life-expectancy"><span>Lebenserwartung</span><span class="input-with-unit"><input id="life-expectancy" data-scenario-field="lifeExpectancy" type="number" min="20" max="110" step="1" inputmode="numeric" /><i>Jahre</i></span></label>
+                    </div>
+                  </section>
 
-          <div class="product-tabs" id="product-tabs" aria-label="Produkt auswählen"></div>
+                  <section class="wizard-step" data-step="1" aria-labelledby="step-investment-title">
+                    <header class="step-heading">
+                      <span class="step-kicker">Produkt</span>
+                      <h3 id="step-investment-title" tabindex="-1">Investment-Parameter</h3>
+                      <p id="selected-position">Produkt 1 von 2</p>
+                    </header>
+                    <div class="product-tabs" id="product-tabs" aria-label="Produkt auswählen"></div>
+                    <div class="field-list">
+                      <label class="row-field" for="product-name"><span>Name</span><span class="input-with-unit wide"><input id="product-name" data-product-field="name" type="text" maxlength="48" /></span></label>
+                      <label class="row-field" for="initial-capital"><span>Anfangskapital</span><span class="input-with-unit"><input id="initial-capital" data-product-field="initialCapital" type="number" min="0" max="10000000" step="100" inputmode="decimal" /><i>€</i></span></label>
+                      <label class="row-field" for="monthly-contribution"><span>Monatliche Rate</span><span class="input-with-unit"><input id="monthly-contribution" data-product-field="monthlyContribution" type="number" min="0" max="100000" step="10" inputmode="decimal" /><i>€</i></span></label>
+                      <label class="row-field" for="annual-return"><span>Rendite pro Jahr</span><span class="input-with-unit"><input id="annual-return" data-product-field="annualReturn" type="number" min="-50" max="50" step="0.1" inputmode="decimal" /><i>%</i></span></label>
+                    </div>
+                    <div class="inline-actions">
+                      <button class="text-button" id="remove-product" type="button">Entfernen</button>
+                      <button class="text-button primary" id="add-product" type="button">+ Produkt hinzufügen</button>
+                    </div>
+                  </section>
 
-          <form id="product-form" autocomplete="off">
-            <div class="field field-wide">
-              <label for="product-name">Name</label>
-              <input id="product-name" name="name" type="text" maxlength="48" />
-            </div>
-            <div class="field">
-              <label for="initial-capital">Startkapital</label>
-              <div class="input-with-unit">
-                <input id="initial-capital" name="initialCapital" type="number" min="0" max="10000000" step="100" inputmode="decimal" />
-                <span>€</span>
-              </div>
-            </div>
-            <div class="field">
-              <label for="monthly-contribution">Monatliche Sparrate</label>
-              <div class="input-with-unit">
-                <input id="monthly-contribution" name="monthlyContribution" type="number" min="0" max="100000" step="10" inputmode="decimal" />
-                <span>€</span>
-              </div>
-            </div>
-            <div class="field">
-              <label for="annual-return">Rendite pro Jahr</label>
-              <div class="input-with-unit">
-                <input id="annual-return" name="annualReturn" type="number" min="-50" max="50" step="0.1" inputmode="decimal" />
-                <span>%</span>
-              </div>
-            </div>
-            <div class="field">
-              <label for="annual-fee">Laufende Kosten</label>
-              <div class="input-with-unit">
-                <input id="annual-fee" name="annualFee" type="number" min="0" max="10" step="0.01" inputmode="decimal" />
-                <span>%</span>
-              </div>
-            </div>
-          </form>
+                  <section class="wizard-step" data-step="2" aria-labelledby="step-withdrawal-title">
+                    <header class="step-heading"><span class="step-kicker">Auszahlungsphase</span><h3 id="step-withdrawal-title" tabindex="-1">Entnahmeplan</h3><p>Simuliere regelmäßige Entnahmen ab Rentenbeginn.</p></header>
+                    <label class="switch-row" for="withdrawal-enabled"><strong>Entnahmephase aktivieren</strong><input id="withdrawal-enabled" data-scenario-field="withdrawalEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
+                    <div class="dependent-fields" data-dependent="withdrawalEnabled">
+                      <div class="field-list">
+                        <label class="row-field" for="post-retirement-return"><span>Rendite nach Rentenbeginn</span><span class="input-with-unit"><input id="post-retirement-return" data-scenario-field="postRetirementReturn" type="number" min="-50" max="30" step="0.1" inputmode="decimal" /><i>%</i></span></label>
+                      </div>
+                      <fieldset class="segment-field"><legend>Periode</legend><div class="segmented"><label><input data-scenario-field="withdrawalFrequency" type="radio" name="withdrawal-frequency" value="monthly" /><span>Monatlich</span></label><label><input data-scenario-field="withdrawalFrequency" type="radio" name="withdrawal-frequency" value="yearly" /><span>Jährlich</span></label></div></fieldset>
+                      <fieldset class="segment-field"><legend>Eingabe</legend><div class="segmented"><label><input data-scenario-field="withdrawalType" type="radio" name="withdrawal-type" value="euro" /><span>Euro</span></label><label><input data-scenario-field="withdrawalType" type="radio" name="withdrawal-type" value="percent" /><span>Prozent</span></label></div></fieldset>
+                      <div class="field-list"><label class="row-field" for="withdrawal-amount"><span>Netto-Entnahme</span><span class="input-with-unit"><input id="withdrawal-amount" data-scenario-field="withdrawalAmount" type="number" min="0" max="100000" step="10" inputmode="decimal" /><i id="withdrawal-unit">€</i></span></label></div>
+                      <label class="switch-row" for="inflation-enabled"><span>Inflation berücksichtigen</span><input id="inflation-enabled" data-scenario-field="inflationEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
+                      <div class="field-list dependent-fields" data-dependent="inflationEnabled"><label class="row-field" for="inflation-rate"><span>Inflation</span><span class="input-with-unit"><input id="inflation-rate" data-scenario-field="inflationRate" type="number" min="0" max="15" step="0.1" inputmode="decimal" /><i>%</i></span></label></div>
+                    </div>
+                  </section>
 
-          <div class="settings-actions">
-            <button class="button button-secondary" id="remove-product" type="button">Produkt entfernen</button>
-            <button class="button button-primary" id="add-product" type="button">Produkt hinzufügen</button>
-          </div>
+                  <section class="wizard-step" data-step="3" aria-labelledby="step-strategy-title">
+                    <header class="step-heading"><span class="step-kicker">Varianz</span><h3 id="step-strategy-title" tabindex="-1">Strategie &amp; Fondswechsel</h3><p>Zusätzliche Annahmen verändern die effektive Wertentwicklung.</p></header>
+                    <label class="switch-row" for="rebalancing-enabled"><strong>Rebalancing</strong><input id="rebalancing-enabled" data-scenario-field="rebalancingEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
+                    <div class="field-list dependent-fields" data-dependent="rebalancingEnabled"><label class="row-field" for="rebalancing-reduction"><span>Renditeminderung</span><span class="input-with-unit"><input id="rebalancing-reduction" data-scenario-field="rebalancingReduction" type="number" min="0" max="10" step="0.1" inputmode="decimal" /><i>%</i></span></label></div>
+                    <label class="switch-row separated" for="fund-switch-enabled"><strong>Fondswechsel</strong><input id="fund-switch-enabled" data-scenario-field="fundSwitchEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
+                    <div class="field-list dependent-fields" data-dependent="fundSwitchEnabled">
+                      <label class="row-field" for="fund-switch-age"><span>Wechsel im Alter von</span><span class="input-with-unit"><input id="fund-switch-age" data-scenario-field="fundSwitchAge" type="number" min="18" max="100" step="1" inputmode="numeric" /><i>J.</i></span></label>
+                      <label class="row-field" for="fund-switch-percentage"><span>Verkaufter Anteil</span><span class="input-with-unit"><input id="fund-switch-percentage" data-scenario-field="fundSwitchPercentage" type="number" min="0" max="100" step="1" inputmode="decimal" /><i>%</i></span></label>
+                    </div>
+                    <details><summary>Steuerliche Auswirkung</summary><p>Ein Fondswechsel realisiert im Modell anteilige Transaktionskosten. Die Steuerwirkung wird in der Produktübersicht separat ausgewiesen.</p></details>
+                  </section>
 
-          <div class="model-note">
-            <strong>So wird gerechnet</strong>
-            <p>
-              Monatliche Verzinsung, Sparrate am Monatsende und Rendite nach Abzug der laufenden Kosten.
-            </p>
+                  <section class="wizard-step" data-step="4" aria-labelledby="step-tax-title">
+                    <header class="step-heading"><span class="step-kicker">Szenario</span><h3 id="step-tax-title" tabindex="-1">Politik &amp; Steuern</h3><p>Vereinfachte Annahmen für den Nettovergleich.</p></header>
+                    <label class="switch-row" for="personal-tax-enabled"><strong>Persönlicher Steuersatz</strong><input id="personal-tax-enabled" data-scenario-field="personalTaxEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
+                    <div class="field-list dependent-fields" data-dependent="personalTaxEnabled"><label class="row-field" for="marginal-tax-rate"><span>Grenzsteuersatz</span><span class="input-with-unit"><input id="marginal-tax-rate" data-scenario-field="marginalTaxRate" type="number" min="0" max="60" step="0.1" inputmode="decimal" /><i>%</i></span></label></div>
+                    <label class="switch-row" for="social-contributions-enabled"><strong>Sozialabgaben auf Kapital</strong><input id="social-contributions-enabled" data-scenario-field="socialContributionsEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
+                    <p class="impact-note">Geschätzte Modellbelastung: <strong id="political-impact">0 €</strong></p>
+                    <details open><summary>Steuer-Einstellungen</summary><div class="field-list details-fields">
+                      <label class="row-field" for="saver-allowance"><span>Sparerpauschbetrag</span><span class="input-with-unit wide"><select id="saver-allowance" data-scenario-field="saverAllowance"><option value="0">Keiner (0 €)</option><option value="1000">1.000 €</option><option value="2000">2.000 €</option></select></span></label>
+                      <label class="row-field" for="base-rate"><span>Basiszins</span><span class="input-with-unit"><input id="base-rate" data-scenario-field="baseRate" type="number" min="0" max="20" step="0.1" inputmode="decimal" /><i>%</i></span></label>
+                    </div>
+                    <label class="switch-row" for="tax-disabled"><span>Steuerberechnung deaktivieren</span><input id="tax-disabled" data-scenario-field="taxDisabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
+                    <label class="switch-row" for="solidarity-enabled"><span>Solidaritätszuschlag (5,5 %)</span><input id="solidarity-enabled" data-scenario-field="solidarityEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label></details>
+                  </section>
+
+                  <section class="wizard-step" data-step="5" aria-labelledby="step-overview-title">
+                    <header class="step-heading"><span class="step-kicker">Produktdetail</span><h3 id="step-overview-title" tabindex="-1">Übersicht &amp; Depotkosten</h3><p id="overview-product-name">ETF-Sparplan 1</p></header>
+                    <div class="detail-tabs" role="tablist" aria-label="Produktdetail">
+                      <button id="overview-tab" type="button" role="tab" aria-selected="true" aria-controls="overview-panel">Übersicht</button>
+                      <button id="cost-tab" type="button" role="tab" aria-selected="false" aria-controls="cost-panel">Kosten</button>
+                    </div>
+                    <div class="detail-panel" id="overview-panel" role="tabpanel" aria-labelledby="overview-tab">
+                      <dl class="summary-list">
+                        <div><dt>Gesamteinzahlungen</dt><dd id="summary-contributions">0 €</dd></div>
+                        <div><dt>Bruttorendite</dt><dd class="positive" id="summary-gross-return">0 €</dd></div>
+                        <div><dt>Gesamtkosten</dt><dd class="negative" id="summary-costs">0 €</dd></div>
+                        <div><dt>Modellsteuern</dt><dd class="negative" id="summary-taxes">0 €</dd></div>
+                        <div class="summary-total"><dt>Vermögen am Lebensende</dt><dd id="summary-ending">0 €</dd></div>
+                      </dl>
+                    </div>
+                    <div class="detail-panel" id="cost-panel" role="tabpanel" aria-labelledby="cost-tab" hidden>
+                      <div class="field-list">
+                        <label class="row-field" for="annual-custody-fee"><span>Jährliche Depotkosten</span><span class="input-with-unit"><input id="annual-custody-fee" data-product-field="annualCustodyFee" type="number" min="0" max="10000" step="1" inputmode="decimal" /><i>€</i></span></label>
+                        <label class="row-field" for="transaction-fee"><span>Transaktionsgebühr</span><span class="input-with-unit"><input id="transaction-fee" data-product-field="transactionFee" type="number" min="0" max="10" step="0.01" inputmode="decimal" /><i>%</i></span></label>
+                        <label class="row-field" for="annual-fee"><span>Laufende Fondskosten</span><span class="input-with-unit"><input id="annual-fee" data-product-field="annualFee" type="number" min="0" max="10" step="0.01" inputmode="decimal" /><i>%</i></span></label>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </form>
+
+            <div class="wizard-navigation">
+              <button id="previous-step" type="button" aria-label="Vorheriger Schritt"><span aria-hidden="true">‹</span></button>
+              <div><strong id="step-progress">Schritt 1 von 6</strong><span id="step-name">Persönlich</span></div>
+              <button id="next-step" type="button" aria-label="Nächster Schritt"><span aria-hidden="true">›</span></button>
+            </div>
+            <p class="swipe-hint">Auch horizontal wischbar</p>
           </div>
         </aside>
       </div>
     </main>
 
     <footer>
-      <p>
-        Vereinfachte Modellrechnung ohne Steuern, Inflation und Kursschwankungen. Keine Anlageberatung.
-      </p>
+      <p>Vereinfachte Modellrechnung mit frei gewählten Annahmen. Keine Anlage- oder Steuerberatung.</p>
     </footer>
 
     <script type="module" src="./js/app.js"></script>

@@ -38,5 +38,22 @@ Der leere Projektordner erhält eine kleine statische App nach dem Muster der 34
 
 ## Offene Punkte
 
-- Steuer- und Entnahmephase sind bewusst nicht Bestandteil dieses Prototyps.
+- Steuerwerte bleiben eine vereinfachte Modellannahme und keine Steuerberatung.
 
+## Ausbaustufe 2: Eingabe-Assistent
+
+### 1. Modell
+
+- Persönliche Altersparameter und Entnahmephase ergänzen
+- Produktkosten und vereinfachte Steuerwirkung ausweisen
+
+### 2. Bedienung
+
+- Eingabebereich ein- und ausklappbar machen
+- Sechs Unterseiten mit Pfeilnavigation und horizontaler Wischgeste umsetzen
+- Aktivierte Funktionen zeigen ihre zugehörigen Eingaben unmittelbar an
+
+### 3. Gestaltung und Prüfung
+
+- Weiß-Grau-Orange-Optik der Referenzbilder übertragen
+- Desktop- und Mobilansichten, Tastaturbedienung und Konsole prüfen

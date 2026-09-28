@@ -10,21 +10,25 @@ const compactCurrency = new Intl.NumberFormat("de-DE", {
   maximumFractionDigits: 1,
 });
 
-export function renderChart(svg, plans, horizon) {
+export function renderChart(svg, plans) {
   svg.replaceChildren();
 
   const plotWidth = WIDTH - PADDING.left - PADDING.right;
   const plotHeight = HEIGHT - PADDING.top - PADDING.bottom;
+  const startAge = plans[0].result.series[0].age;
+  const endAge = Math.max(...plans.map(({ result }) => result.series.at(-1).age));
+  const horizon = Math.max(1, endAge - startAge);
   const maximum = getNiceMaximum(
-    plans.flatMap(({ result }) => result.series.map((point) => point.balance)),
+    plans.flatMap(({ result }) => result.series.flatMap((point) => [point.balance, point.contributed])),
   );
 
-  renderGrid(svg, maximum, horizon, plotWidth, plotHeight);
+  renderGrid(svg, maximum, startAge, endAge, plotWidth, plotHeight);
 
   for (const { product, result } of plans) {
-    const linePath = createLinePath(result.series, horizon, maximum, plotWidth, plotHeight);
+    const linePath = createLinePath(result.series, "balance", startAge, horizon, maximum, plotWidth, plotHeight);
+    const contributionPath = createLinePath(result.series, "contributed", startAge, horizon, maximum, plotWidth, plotHeight);
     const lastPoint = result.series.at(-1);
-    const endX = scaleX(lastPoint.year, horizon, plotWidth);
+    const endX = scaleX(lastPoint.age - startAge, horizon, plotWidth);
     const endY = scaleY(lastPoint.balance, maximum, plotHeight);
 
     svg.append(
@@ -36,6 +40,12 @@ export function renderChart(svg, plans, horizon) {
       createSvgElement("path", {
         class: "chart-line",
         d: linePath,
+        stroke: product.color,
+        "vector-effect": "non-scaling-stroke",
+      }),
+      createSvgElement("path", {
+        class: "chart-contribution-line",
+        d: contributionPath,
         stroke: product.color,
         "vector-effect": "non-scaling-stroke",
       }),
@@ -51,7 +61,7 @@ export function renderChart(svg, plans, horizon) {
   }
 }
 
-function renderGrid(svg, maximum, horizon, plotWidth, plotHeight) {
+function renderGrid(svg, maximum, startAge, endAge, plotWidth, plotHeight) {
   for (let index = 0; index <= 4; index += 1) {
     const ratio = index / 4;
     const y = PADDING.top + plotHeight - ratio * plotHeight;
@@ -78,10 +88,10 @@ function renderGrid(svg, maximum, horizon, plotWidth, plotHeight) {
     );
   }
 
-  const yearTicks = [...new Set([0, 0.25, 0.5, 0.75, 1].map((ratio) => Math.round(horizon * ratio)))];
+  const ageTicks = [...new Set([0, 0.25, 0.5, 0.75, 1].map((ratio) => Math.round(startAge + (endAge - startAge) * ratio)))];
 
-  for (const year of yearTicks) {
-    const x = scaleX(year, horizon, plotWidth);
+  for (const age of ageTicks) {
+    const x = scaleX(age - startAge, endAge - startAge, plotWidth);
     svg.append(
       createSvgElement(
         "text",
@@ -89,19 +99,19 @@ function renderGrid(svg, maximum, horizon, plotWidth, plotHeight) {
           class: "chart-axis-label",
           x,
           y: HEIGHT - 18,
-          "text-anchor": year === 0 ? "start" : year === horizon ? "end" : "middle",
+          "text-anchor": age === startAge ? "start" : age === endAge ? "end" : "middle",
         },
-        year === 1 ? "1 Jahr" : `${year} Jahre`,
+        `${age} J.`,
       ),
     );
   }
 }
 
-function createLinePath(series, horizon, maximum, plotWidth, plotHeight) {
+function createLinePath(series, key, startAge, horizon, maximum, plotWidth, plotHeight) {
   return series
     .map((point, index) => {
       const command = index === 0 ? "M" : "L";
-      return `${command} ${scaleX(point.year, horizon, plotWidth)} ${scaleY(point.balance, maximum, plotHeight)}`;
+      return `${command} ${scaleX(point.age - startAge, horizon, plotWidth)} ${scaleY(point[key], maximum, plotHeight)}`;
     })
     .join(" ");
 }

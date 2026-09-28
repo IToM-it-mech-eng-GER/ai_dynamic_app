@@ -19,3 +19,19 @@
 - [x] Lokale Vorschau bereitstellen
   - Abnahme: App ist unter Port 4177 erreichbar.
   - Prüfung: HTTP-Aufruf und Browser-Ladetest
+
+- [x] Szenario- und Entnahmelogik erweitern
+  - Abnahme: Altersgrenzen, Entnahme und Kosten liefern nachvollziehbare Ergebnisse.
+  - Prüfung: `npm test`
+
+- [x] Sechsstufigen Eingabe-Assistenten umsetzen
+  - Abnahme: Pfeile und horizontale Wischgeste wechseln sicher zwischen sechs Seiten.
+  - Prüfung: Bedienprüfung im Browser
+
+- [x] Eingaben ein- und ausklappbar machen
+  - Abnahme: Der Vergleich nutzt den freien Platz und alle Bedienelemente bleiben erreichbar.
+  - Prüfung: Desktop- und Mobilansicht
+
+- [x] Referenzoptik und Unterfunktionen vervollständigen
+  - Abnahme: Entnahme, Strategie, politische Szenarien, Steuern und Depotkosten reagieren auf Eingaben.
+  - Prüfung: `npm run check` und Browserprüfung

@@ -1,4 +1,4 @@
-import { calculatePlan, normalizeHorizon } from "./calculator.js";
+import { calculatePlan } from "./calculator.js";
 import { renderChart } from "./chart.js";
 import {
   addProduct,
@@ -6,52 +6,80 @@ import {
   removeProduct,
   updateProduct,
 } from "./products.js";
+import {
+  createScenario,
+  getSwipeStep,
+  moveWizardStep,
+  normalizeScenario,
+} from "./scenario.js";
 
+const STEP_NAMES = ["Persönlich", "Investment", "Entnahme", "Strategie", "Steuern", "Produktdetail"];
+const STRING_SCENARIO_FIELDS = new Set(["withdrawalFrequency", "withdrawalType"]);
 const money = new Intl.NumberFormat("de-DE", {
   style: "currency",
   currency: "EUR",
   maximumFractionDigits: 0,
-});
-const percent = new Intl.NumberFormat("de-DE", {
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 2,
 });
 
 const elements = {
   addProduct: getElement("add-product"),
   chart: getElement("growth-chart"),
   chartDescription: getElement("chart-description"),
-  chartYears: getElement("chart-years"),
+  chartRange: getElement("chart-range"),
   comparisonBody: getElement("comparison-body"),
-  form: getElement("product-form"),
-  horizonInput: getElement("horizon-input"),
-  horizonOutput: getElement("horizon-output"),
+  costPanel: getElement("cost-panel"),
+  costTab: getElement("cost-tab"),
+  dashboard: getElement("dashboard"),
+  nextStep: getElement("next-step"),
+  overviewPanel: getElement("overview-panel"),
+  overviewTab: getElement("overview-tab"),
+  previousStep: getElement("previous-step"),
   productCards: getElement("product-cards"),
   productCount: getElement("product-count"),
   productTabs: getElement("product-tabs"),
   removeProduct: getElement("remove-product"),
   resetButton: getElement("reset-button"),
   selectedPosition: getElement("selected-position"),
+  settingsForm: getElement("settings-form"),
+  settingsOpen: getElement("settings-open"),
+  settingsPanel: getElement("settings-panel"),
+  settingsToggle: getElement("settings-toggle"),
+  stepName: getElement("step-name"),
+  stepProgress: getElement("step-progress"),
+  track: getElement("wizard-track"),
+  viewport: getElement("wizard-viewport"),
+  withdrawalUnit: getElement("withdrawal-unit"),
 };
 
-const fields = {
-  name: getElement("product-name"),
-  initialCapital: getElement("initial-capital"),
-  monthlyContribution: getElement("monthly-contribution"),
-  annualReturn: getElement("annual-return"),
-  annualFee: getElement("annual-fee"),
+const summaryElements = {
+  contributions: getElement("summary-contributions"),
+  costs: getElement("summary-costs"),
+  ending: getElement("summary-ending"),
+  grossReturn: getElement("summary-gross-return"),
+  name: getElement("overview-product-name"),
+  politicalImpact: getElement("political-impact"),
+  taxes: getElement("summary-taxes"),
 };
 
 let state = createInitialState();
+let swipeStart = null;
 
-elements.form.addEventListener("submit", (event) => event.preventDefault());
-elements.form.addEventListener("input", handleProductInput);
-elements.form.addEventListener("change", () => syncForm(getSelectedProduct()));
-elements.horizonInput.addEventListener("input", handleHorizonInput);
+elements.settingsForm.addEventListener("submit", (event) => event.preventDefault());
+elements.settingsForm.addEventListener("input", handleSettingsInput);
+elements.settingsForm.addEventListener("change", () => render());
 elements.productCards.addEventListener("click", handleProductChoice);
 elements.productTabs.addEventListener("click", handleProductChoice);
 elements.addProduct.addEventListener("click", handleAddProduct);
 elements.removeProduct.addEventListener("click", handleRemoveProduct);
+elements.previousStep.addEventListener("click", () => changeStep(-1, true));
+elements.nextStep.addEventListener("click", handleNextStep);
+elements.settingsToggle.addEventListener("click", () => setSettingsCollapsed(true));
+elements.settingsOpen.addEventListener("click", () => setSettingsCollapsed(false));
+elements.overviewTab.addEventListener("click", () => setDetailTab("overview"));
+elements.costTab.addEventListener("click", () => setDetailTab("cost"));
+elements.viewport.addEventListener("pointerdown", handlePointerDown);
+elements.viewport.addEventListener("pointerup", handlePointerUp);
+elements.viewport.addEventListener("pointercancel", () => { swipeStart = null; });
 elements.resetButton.addEventListener("click", () => {
   state = createInitialState();
   render();
@@ -62,9 +90,12 @@ render();
 function createInitialState() {
   const products = createProducts(2);
   return {
-    horizon: 30,
+    detailTab: "overview",
     products,
+    scenario: createScenario(),
     selectedId: products[0].id,
+    settingsCollapsed: false,
+    step: 0,
   };
 }
 
@@ -72,21 +103,25 @@ function render({ syncInputs = true } = {}) {
   ensureSelection();
   const plans = state.products.map((product) => ({
     product,
-    result: calculatePlan(product, state.horizon),
+    result: calculatePlan(product, state.scenario),
   }));
 
   renderProductCards(plans);
   renderProductTabs();
   renderComparison(plans);
-  renderChart(elements.chart, plans, state.horizon);
+  renderChart(elements.chart, plans);
   renderStatus(plans);
+  renderWizard();
+  renderDependencies();
+  renderDetailTabs();
+  renderPanelState();
 
-  if (syncInputs) syncForm(getSelectedProduct());
+  if (syncInputs) syncForms(getSelectedProduct());
 }
 
 function renderProductCards(plans) {
   const bestIndex = plans.reduce(
-    (best, plan, index) => plan.result.endingBalance > plans[best].result.endingBalance ? index : best,
+    (best, plan, index) => plan.result.retirementBalance > plans[best].result.retirementBalance ? index : best,
     0,
   );
   const cards = plans.map(({ product, result }, index) => {
@@ -99,18 +134,13 @@ function renderProductCards(plans) {
     if (index === bestIndex && plans.length > 1) button.classList.add("is-best");
 
     const title = createElement("span", "card-title");
-    title.append(
-      createElement("span", "color-dot", "", true),
-      createElement("span", "", product.name),
-    );
+    title.append(createElement("span", "color-dot", "", true), createElement("span", "", product.name));
     button.append(title);
-    if (button.classList.contains("is-best")) {
-      button.append(createElement("span", "best-label", "Höchster Wert"));
-    }
+    if (index === bestIndex && plans.length > 1) button.append(createElement("span", "best-label", "Höchster Wert"));
     button.append(
-      createElement("span", "card-label", `Endvermögen nach ${state.horizon} Jahren`),
-      createElement("strong", "card-value", money.format(result.endingBalance)),
-      createMeta(result),
+      createElement("span", "card-label", `Vermögen mit ${state.scenario.retirementAge}`),
+      createElement("strong", "card-value", money.format(result.retirementBalance)),
+      createCardMeta(result),
     );
     return button;
   });
@@ -120,24 +150,19 @@ function renderProductCards(plans) {
     addButton.type = "button";
     addButton.className = "add-card";
     addButton.dataset.action = "add";
-    addButton.setAttribute("aria-label", "Weiteres Produkt hinzufügen");
-    addButton.append(
-      createElement("span", "", "+", true),
-      document.createTextNode("Produkt hinzufügen"),
-    );
+    addButton.append(createElement("span", "", "+", true), document.createTextNode("Produkt hinzufügen"));
     cards.push(addButton);
   }
-
   elements.productCards.replaceChildren(...cards);
 }
 
-function createMeta(result) {
+function createCardMeta(result) {
   const meta = createElement("span", "card-meta");
   const contributions = createElement("span", "");
-  const gain = createElement("span", result.totalGain < 0 ? "negative" : "positive");
+  const ending = createElement("span", "");
   contributions.append("Eingezahlt ", createElement("strong", "", money.format(result.totalContributions)));
-  gain.append("Zuwachs ", createElement("strong", "", formatSignedMoney(result.totalGain)));
-  meta.append(contributions, gain);
+  ending.append("Lebensende ", createElement("strong", "", money.format(result.endingBalance)));
+  meta.append(contributions, ending);
   return meta;
 }
 
@@ -148,7 +173,6 @@ function renderProductTabs() {
     button.className = "product-tab";
     button.dataset.productId = product.id;
     button.setAttribute("aria-pressed", String(product.id === state.selectedId));
-    button.setAttribute("aria-label", `${product.name} auswählen`);
     button.textContent = `Plan ${index + 1}`;
     return button;
   });
@@ -160,16 +184,14 @@ function renderComparison(plans) {
     const row = document.createElement("tr");
     const productCell = document.createElement("td");
     const productLabel = createElement("span", "table-product");
-    const dot = createElement("span", `color-dot ${getColorClass(product)}`, "", true);
-    productLabel.append(dot, product.name);
+    productLabel.append(createElement("span", `color-dot ${getColorClass(product)}`, "", true), product.name);
     productCell.append(productLabel);
-
     row.append(
       productCell,
       createElement("td", "", money.format(result.totalContributions)),
-      createElement("td", result.totalGain < 0 ? "negative" : "positive", formatSignedMoney(result.totalGain)),
+      createElement("td", "positive", money.format(result.retirementBalance)),
+      createElement("td", "", money.format(result.totalWithdrawals)),
       createElement("td", "", money.format(result.endingBalance)),
-      createElement("td", "", `${percent.format(result.netAnnualReturn)} %`),
     );
     return row;
   });
@@ -178,37 +200,101 @@ function renderComparison(plans) {
 
 function renderStatus(plans) {
   const selectedIndex = state.products.findIndex((product) => product.id === state.selectedId);
+  const selectedPlan = plans[selectedIndex];
+  const result = selectedPlan.result;
   elements.productCount.textContent = String(state.products.length);
-  elements.selectedPosition.textContent = `${selectedIndex + 1} von ${state.products.length}`;
-  elements.chartYears.textContent = String(state.horizon);
-  elements.horizonInput.value = String(state.horizon);
-  elements.horizonOutput.textContent = state.horizon === 1 ? "1 Jahr" : `${state.horizon} Jahre`;
+  elements.selectedPosition.textContent = `Produkt ${selectedIndex + 1} von ${state.products.length}`;
+  elements.chartRange.textContent = `${state.scenario.currentAge} bis ${result.endAge} Jahre`;
   elements.removeProduct.disabled = state.products.length === 1;
   elements.addProduct.disabled = state.products.length === 3;
   elements.chartDescription.textContent = plans
-    .map(({ product, result }) => `${product.name}: ${money.format(result.endingBalance)} Endvermögen.`)
+    .map(({ product, result: planResult }) => `${product.name}: ${money.format(planResult.retirementBalance)} zum Rentenbeginn und ${money.format(planResult.endingBalance)} am Modellende.`)
     .join(" ");
+
+  summaryElements.name.textContent = selectedPlan.product.name;
+  summaryElements.contributions.textContent = money.format(result.totalContributions);
+  summaryElements.grossReturn.textContent = formatSignedMoney(
+    result.grossEndingBalance + result.totalWithdrawals - result.totalContributions,
+  );
+  summaryElements.costs.textContent = formatNegativeMoney(result.totalCosts);
+  summaryElements.taxes.textContent = formatNegativeMoney(result.estimatedTaxes);
+  summaryElements.ending.textContent = money.format(result.netEndingBalance);
+  summaryElements.politicalImpact.textContent = formatNegativeMoney(result.estimatedTaxes);
 }
 
-function syncForm(product) {
-  for (const [key, field] of Object.entries(fields)) {
-    field.value = String(product[key]);
-  }
-}
-
-function handleProductInput(event) {
-  const field = event.target;
-  if (!(field instanceof HTMLInputElement) || !field.name) return;
-  const value = field.name === "name" ? field.value : field.valueAsNumber;
-  state.products = updateProduct(state.products, state.selectedId, {
-    [field.name]: value,
+function renderWizard() {
+  elements.track.style.transform = `translateX(-${state.step * 100}%)`;
+  const steps = [...elements.track.querySelectorAll(".wizard-step")];
+  steps.forEach((step, index) => {
+    const inactive = index !== state.step;
+    step.setAttribute("aria-hidden", String(inactive));
+    step.inert = inactive;
   });
+  elements.previousStep.disabled = state.step === 0;
+  elements.nextStep.querySelector("span").textContent = state.step === 5 ? "✓" : "›";
+  elements.nextStep.setAttribute("aria-label", state.step === 5 ? "Eingaben schließen" : "Nächster Schritt");
+  elements.stepProgress.textContent = `Schritt ${state.step + 1} von 6`;
+  elements.stepName.textContent = STEP_NAMES[state.step];
+}
+
+function renderDependencies() {
+  document.querySelectorAll("[data-dependent]").forEach((container) => {
+    const enabled = Boolean(state.scenario[container.dataset.dependent]);
+    container.hidden = !enabled;
+    container.inert = !enabled;
+  });
+  elements.withdrawalUnit.textContent = state.scenario.withdrawalType === "percent" ? "%" : "€";
+}
+
+function renderDetailTabs() {
+  const overviewActive = state.detailTab === "overview";
+  elements.overviewTab.setAttribute("aria-selected", String(overviewActive));
+  elements.costTab.setAttribute("aria-selected", String(!overviewActive));
+  elements.overviewPanel.hidden = !overviewActive;
+  elements.costPanel.hidden = overviewActive;
+}
+
+function renderPanelState() {
+  elements.dashboard.classList.toggle("is-settings-collapsed", state.settingsCollapsed);
+  elements.settingsPanel.hidden = state.settingsCollapsed;
+  elements.settingsPanel.inert = state.settingsCollapsed;
+  elements.settingsOpen.hidden = !state.settingsCollapsed;
+  elements.settingsToggle.setAttribute("aria-expanded", String(!state.settingsCollapsed));
+}
+
+function syncForms(product) {
+  document.querySelectorAll("[data-product-field]").forEach((field) => {
+    field.value = String(product[field.dataset.productField]);
+  });
+  document.querySelectorAll("[data-scenario-field]").forEach((field) => {
+    const value = state.scenario[field.dataset.scenarioField];
+    if (field instanceof HTMLInputElement && field.type === "checkbox") field.checked = value;
+    else if (field instanceof HTMLInputElement && field.type === "radio") field.checked = field.value === value;
+    else field.value = String(value);
+  });
+}
+
+function handleSettingsInput(event) {
+  const field = event.target;
+  if (!(field instanceof HTMLInputElement || field instanceof HTMLSelectElement)) return;
+  const productKey = field.dataset.productField;
+  const scenarioKey = field.dataset.scenarioField;
+
+  if (productKey) {
+    const value = productKey === "name" ? field.value : field.valueAsNumber;
+    state.products = updateProduct(state.products, state.selectedId, { [productKey]: value });
+  }
+  if (scenarioKey) {
+    const value = readScenarioField(field, scenarioKey);
+    state.scenario = normalizeScenario({ ...state.scenario, [scenarioKey]: value });
+  }
   render({ syncInputs: false });
 }
 
-function handleHorizonInput(event) {
-  state.horizon = normalizeHorizon(event.target.valueAsNumber);
-  render({ syncInputs: false });
+function readScenarioField(field, key) {
+  if (field instanceof HTMLInputElement && field.type === "checkbox") return field.checked;
+  if (STRING_SCENARIO_FIELDS.has(key)) return field.value;
+  return field instanceof HTMLInputElement ? field.valueAsNumber : Number(field.value);
 }
 
 function handleProductChoice(event) {
@@ -239,10 +325,49 @@ function handleRemoveProduct() {
   render();
 }
 
-function ensureSelection() {
-  if (!state.products.some((product) => product.id === state.selectedId)) {
-    state.selectedId = state.products[0].id;
+function handleNextStep() {
+  if (state.step === 5) {
+    setSettingsCollapsed(true);
+    return;
   }
+  changeStep(1, true);
+}
+
+function changeStep(direction, focusHeading = false) {
+  const nextStep = moveWizardStep(state.step, direction);
+  if (nextStep === state.step) return;
+  state.step = nextStep;
+  renderWizard();
+  if (focusHeading) {
+    elements.track.querySelector(`[data-step="${state.step}"] h3`).focus({ preventScroll: true });
+  }
+}
+
+function setSettingsCollapsed(collapsed) {
+  state.settingsCollapsed = collapsed;
+  renderPanelState();
+  if (!collapsed) elements.settingsToggle.focus();
+}
+
+function setDetailTab(tab) {
+  state.detailTab = tab;
+  renderDetailTabs();
+}
+
+function handlePointerDown(event) {
+  if (event.target.closest("input, select, button, label, summary")) return;
+  swipeStart = { x: event.clientX, y: event.clientY };
+}
+
+function handlePointerUp(event) {
+  if (!swipeStart) return;
+  const direction = getSwipeStep(event.clientX - swipeStart.x, event.clientY - swipeStart.y);
+  swipeStart = null;
+  if (direction) changeStep(direction);
+}
+
+function ensureSelection() {
+  if (!state.products.some((product) => product.id === state.selectedId)) state.selectedId = state.products[0].id;
 }
 
 function getSelectedProduct() {
@@ -254,8 +379,11 @@ function getColorClass(product) {
 }
 
 function formatSignedMoney(value) {
-  const formatted = money.format(Math.abs(value));
-  return `${value < 0 ? "−" : "+"}${formatted}`;
+  return `${value < 0 ? "−" : "+"}${money.format(Math.abs(value))}`;
+}
+
+function formatNegativeMoney(value) {
+  return value > 0 ? `−${money.format(value)}` : money.format(0);
 }
 
 function createElement(tagName, className = "", text = "", hidden = false) {

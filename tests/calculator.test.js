@@ -92,3 +92,109 @@ test("liefert auch bei negativer Nettorendite endliche Werte", () => {
   assert.ok(result.endingBalance >= 0);
   assert.equal(result.series.length, 31);
 });
+
+test("berechnet Anspar- und Entnahmephase entlang der Altersangaben", () => {
+  const result = calculatePlan(
+    {
+      initialCapital: 0,
+      monthlyContribution: 100,
+      annualReturn: 0,
+      annualFee: 0,
+    },
+    {
+      currentAge: 40,
+      retirementAge: 42,
+      lifeExpectancy: 44,
+      withdrawalEnabled: true,
+      withdrawalAmount: 50,
+      withdrawalFrequency: "monthly",
+      withdrawalType: "euro",
+      postRetirementReturn: 0,
+      inflationEnabled: false,
+      rebalancingEnabled: false,
+    },
+  );
+
+  assert.equal(result.totalContributions, 2_400);
+  assert.equal(result.totalWithdrawals, 1_200);
+  assert.equal(result.retirementBalance, 2_400);
+  assert.equal(result.endingBalance, 1_200);
+  assert.equal(result.totalGain, 0);
+  assert.deepEqual(result.series.map((point) => point.age), [40, 41, 42, 43, 44]);
+});
+
+test("erhöht Entnahmen bei aktivierter Inflation jährlich", () => {
+  const baseScenario = {
+    currentAge: 60,
+    retirementAge: 61,
+    lifeExpectancy: 64,
+    withdrawalEnabled: true,
+    withdrawalAmount: 1_000,
+    withdrawalFrequency: "yearly",
+    withdrawalType: "euro",
+    postRetirementReturn: 0,
+  };
+  const product = {
+    initialCapital: 100_000,
+    monthlyContribution: 0,
+    annualReturn: 0,
+    annualFee: 0,
+  };
+
+  const withoutInflation = calculatePlan(product, {
+    ...baseScenario,
+    inflationEnabled: false,
+  });
+  const withInflation = calculatePlan(product, {
+    ...baseScenario,
+    inflationEnabled: true,
+    inflationRate: 10,
+  });
+
+  assert.equal(withoutInflation.totalWithdrawals, 3_000);
+  assert.ok(withInflation.totalWithdrawals > withoutInflation.totalWithdrawals);
+  assert.ok(withInflation.endingBalance < withoutInflation.endingBalance);
+});
+
+test("weist Depot- und Transaktionskosten als Modellkosten aus", () => {
+  const result = calculatePlan(
+    {
+      initialCapital: 10_000,
+      monthlyContribution: 100,
+      annualReturn: 5,
+      annualFee: 0.2,
+      annualCustodyFee: 24,
+      transactionFee: 1,
+    },
+    {
+      currentAge: 30,
+      retirementAge: 40,
+      lifeExpectancy: 80,
+      withdrawalEnabled: false,
+    },
+  );
+
+  assert.ok(result.totalCosts > 0);
+  assert.ok(result.grossEndingBalance > result.endingBalance);
+  assert.equal(result.series.at(-1).age, 40);
+});
+
+test("deaktiviert die vereinfachte Steuerberechnung vollständig", () => {
+  const result = calculatePlan(
+    {
+      initialCapital: 10_000,
+      monthlyContribution: 0,
+      annualReturn: 10,
+      annualFee: 0,
+    },
+    {
+      currentAge: 30,
+      retirementAge: 40,
+      lifeExpectancy: 80,
+      withdrawalEnabled: false,
+      taxDisabled: true,
+    },
+  );
+
+  assert.equal(result.estimatedTaxes, 0);
+});

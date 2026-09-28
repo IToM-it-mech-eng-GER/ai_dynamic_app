@@ -1,6 +1,8 @@
 # ETF-Renditevergleich
 
-Statische Single-Page-App zum Vergleich von bis zu drei ETF-Sparplänen. Die App benötigt keinen Build-Schritt und kann direkt über GitHub Pages veröffentlicht werden.
+Statische Single-Page-App zum Vergleich von bis zu drei ETF-Sparplänen. Persönliche Zeiträume, Entnahmephase, Strategie, vereinfachte Steuerannahmen und Depotkosten werden über einen sechsstufigen Eingabe-Assistenten gesteuert. Die App benötigt keinen Build-Schritt und kann direkt über GitHub Pages veröffentlicht werden.
+
+Die Eingaben lassen sich ein- und ausklappen. Auf kleinen Bildschirmen können die sechs Seiten zusätzlich horizontal gewischt werden.
 
 ## Lokal starten
 
@@ -17,7 +19,7 @@ npm test
 npm run check
 ```
 
-Die Ergebnisse sind vereinfachte Modellrechnungen und keine Anlageberatung.
+Die Ergebnisse sind vereinfachte Modellrechnungen und keine Anlage- oder Steuerberatung.
 
 ## GitHub Pages
 
