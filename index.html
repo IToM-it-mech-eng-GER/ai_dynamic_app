@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Vergleiche ein bis drei ETF-Sparpläne anhand eigener Rendite- und Kostenannahmen."
+    />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'"
+    />
+    <title>Renditeatlas – ETF-Sparpläne vergleichen</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231b2b27'/%3E%3Cpath d='M15 43 27 31l8 7 14-17' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Direkt zum Inhalt</a>
+
+    <header class="app-header">
+      <div class="header-inner">
+        <a class="brand" href="#main-content" aria-label="Renditeatlas – zur Übersicht">
+          <span class="brand-mark" aria-hidden="true">R↗</span>
+          <span>
+            <strong>Renditeatlas</strong>
+            <small>ETF-Sparplanvergleich</small>
+          </span>
+        </a>
+        <div class="header-actions">
+          <span class="local-badge">Lokal berechnet</span>
+          <button class="icon-button" id="reset-button" type="button">
+            <span aria-hidden="true">↺</span>
+            Zurücksetzen
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content" tabindex="-1">
+      <section class="page-intro" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">Sparpläne auf einen Blick</p>
+          <h1 id="page-title">Welche Annahme bringt dich weiter?</h1>
+        </div>
+        <p>
+          Vergleiche bis zu drei Szenarien mit eigenen Sparraten, Renditen und Kosten.
+        </p>
+      </section>
+
+      <div class="dashboard">
+        <section class="workspace" aria-label="Vergleich und Entwicklung">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Deine Szenarien</p>
+              <h2>Vermögensvergleich</h2>
+            </div>
+            <p><span id="product-count">2</span> von 3 Produkten</p>
+          </div>
+
+          <div class="product-cards" id="product-cards" aria-live="polite"></div>
+
+          <section class="chart-panel" aria-labelledby="chart-title">
+            <div class="chart-heading">
+              <div>
+                <p class="eyebrow">Wertentwicklung</p>
+                <h2 id="chart-title">Vermögen über die Laufzeit</h2>
+              </div>
+              <div class="chart-period">
+                <span>Anlagehorizont</span>
+                <strong><span id="chart-years">30</span> Jahre</strong>
+              </div>
+            </div>
+            <div class="chart-scroll">
+              <svg
+                id="growth-chart"
+                class="growth-chart"
+                viewBox="0 0 900 440"
+                role="img"
+                aria-labelledby="chart-title chart-description"
+              ></svg>
+            </div>
+            <p class="sr-only" id="chart-description" aria-live="polite"></p>
+          </section>
+
+          <section class="comparison-panel" aria-labelledby="comparison-title">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">Ergebnisübersicht</p>
+                <h2 id="comparison-title">Direkter Vergleich</h2>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Produkt</th>
+                    <th scope="col">Einzahlungen</th>
+                    <th scope="col">Wertzuwachs</th>
+                    <th scope="col">Endvermögen</th>
+                    <th scope="col">Rendite nach Kosten</th>
+                  </tr>
+                </thead>
+                <tbody id="comparison-body"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <aside class="settings-panel" aria-labelledby="settings-title">
+          <div class="settings-heading">
+            <div>
+              <p class="eyebrow">Eingaben</p>
+              <h2 id="settings-title">Sparplan einstellen</h2>
+            </div>
+            <span id="selected-position">1 von 2</span>
+          </div>
+
+          <section class="horizon-control" aria-labelledby="horizon-title">
+            <div class="control-heading">
+              <h3 id="horizon-title">Gemeinsame Laufzeit</h3>
+              <output id="horizon-output" for="horizon-input">30 Jahre</output>
+            </div>
+            <label class="sr-only" for="horizon-input">Gemeinsame Laufzeit in Jahren</label>
+            <input id="horizon-input" type="range" min="1" max="50" step="1" value="30" />
+            <div class="range-labels" aria-hidden="true"><span>1 Jahr</span><span>50 Jahre</span></div>
+          </section>
+
+          <div class="product-tabs" id="product-tabs" aria-label="Produkt auswählen"></div>
+
+          <form id="product-form" autocomplete="off">
+            <div class="field field-wide">
+              <label for="product-name">Name</label>
+              <input id="product-name" name="name" type="text" maxlength="48" />
+            </div>
+            <div class="field">
+              <label for="initial-capital">Startkapital</label>
+              <div class="input-with-unit">
+                <input id="initial-capital" name="initialCapital" type="number" min="0" max="10000000" step="100" inputmode="decimal" />
+                <span>€</span>
+              </div>
+            </div>
+            <div class="field">
+              <label for="monthly-contribution">Monatliche Sparrate</label>
+              <div class="input-with-unit">
+                <input id="monthly-contribution" name="monthlyContribution" type="number" min="0" max="100000" step="10" inputmode="decimal" />
+                <span>€</span>
+              </div>
+            </div>
+            <div class="field">
+              <label for="annual-return">Rendite pro Jahr</label>
+              <div class="input-with-unit">
+                <input id="annual-return" name="annualReturn" type="number" min="-50" max="50" step="0.1" inputmode="decimal" />
+                <span>%</span>
+              </div>
+            </div>
+            <div class="field">
+              <label for="annual-fee">Laufende Kosten</label>
+              <div class="input-with-unit">
+                <input id="annual-fee" name="annualFee" type="number" min="0" max="10" step="0.01" inputmode="decimal" />
+                <span>%</span>
+              </div>
+            </div>
+          </form>
+
+          <div class="settings-actions">
+            <button class="button button-secondary" id="remove-product" type="button">Produkt entfernen</button>
+            <button class="button button-primary" id="add-product" type="button">Produkt hinzufügen</button>
+          </div>
+
+          <div class="model-note">
+            <strong>So wird gerechnet</strong>
+            <p>
+              Monatliche Verzinsung, Sparrate am Monatsende und Rendite nach Abzug der laufenden Kosten.
+            </p>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <footer>
+      <p>
+        Vereinfachte Modellrechnung ohne Steuern, Inflation und Kursschwankungen. Keine Anlageberatung.
+      </p>
+    </footer>
+
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>

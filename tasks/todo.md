@@ -8,14 +8,14 @@
   - Abnahme: Einzahlungen, Zuwachs, Kosten und Jahreswerte stimmen.
   - Prüfung: `npm test`
 
-- [ ] Vergleichsoberfläche umsetzen
+- [x] Vergleichsoberfläche umsetzen
   - Abnahme: Ein bis drei Produkte besitzen getrennte Einstellungen.
   - Prüfung: `npm run check` und Bedienprüfung im Browser
 
-- [ ] Responsive und zugängliche Darstellung abschließen
+- [x] Responsive und zugängliche Darstellung abschließen
   - Abnahme: Ansichten bei 320, 768, 1024 und 1440 Pixeln funktionieren.
   - Prüfung: Browser-Screenshots, Fokusreihenfolge und saubere Konsole
 
-- [ ] Lokale Vorschau bereitstellen
+- [x] Lokale Vorschau bereitstellen
   - Abnahme: App ist unter Port 4177 erreichbar.
   - Prüfung: HTTP-Aufruf und Browser-Ladetest
