@@ -198,3 +198,31 @@ test("deaktiviert die vereinfachte Steuerberechnung vollständig", () => {
 
   assert.equal(result.estimatedTaxes, 0);
 });
+
+test("behandelt Rebalancing als Renditeabzug und niemals als Bonus", () => {
+  const product = {
+    initialCapital: 10_000,
+    monthlyContribution: 200,
+    annualReturn: 6,
+    annualFee: 0.2,
+  };
+  const scenario = {
+    currentAge: 30,
+    retirementAge: 50,
+    lifeExpectancy: 80,
+    withdrawalEnabled: false,
+    taxDisabled: true,
+    rebalancingReduction: 0.5,
+  };
+  const withoutRebalancing = calculatePlan(product, {
+    ...scenario,
+    rebalancingEnabled: false,
+  });
+  const withRebalancing = calculatePlan(product, {
+    ...scenario,
+    rebalancingEnabled: true,
+  });
+
+  assert.equal(withRebalancing.netAnnualReturn, 5.3);
+  assert.ok(withRebalancing.endingBalance < withoutRebalancing.endingBalance);
+});

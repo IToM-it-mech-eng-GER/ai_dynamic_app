@@ -47,10 +47,9 @@ export function calculatePlan(product, horizonOrScenario) {
   const context = createCalculationContext(horizonOrScenario);
   const years = context.retirementAge - context.currentAge;
   const savingMonths = years * 12;
+  const rebalancingCost = context.rebalancingEnabled ? context.rebalancingReduction : 0;
   const netAnnualReturn = clamp(
-    normalizedProduct.annualReturn
-      - normalizedProduct.annualFee
-      - (context.rebalancingEnabled ? context.rebalancingReduction : 0),
+    normalizedProduct.annualReturn - normalizedProduct.annualFee - rebalancingCost,
     -99,
     50,
   );
@@ -156,6 +155,7 @@ export function calculatePlan(product, horizonOrScenario) {
     years,
     endAge: context.withdrawalEnabled ? context.lifeExpectancy : context.retirementAge,
     netAnnualReturn,
+    rebalancingCost,
     endingBalance: balance,
     netEndingBalance: Math.max(0, balance - estimatedTaxes),
     grossEndingBalance: grossBalance,
