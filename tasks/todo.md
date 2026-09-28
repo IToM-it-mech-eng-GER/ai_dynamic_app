@@ -4,7 +4,7 @@
   - Abnahme: Stack, Grenzen und Erfolgskriterien sind festgehalten.
   - Prüfung: Dateien sind vorhanden und gültig.
 
-- [ ] Sparplanberechnung testgetrieben umsetzen
+- [x] Sparplanberechnung testgetrieben umsetzen
   - Abnahme: Einzahlungen, Zuwachs, Kosten und Jahreswerte stimmen.
   - Prüfung: `npm test`
 
@@ -19,4 +19,3 @@
 - [ ] Lokale Vorschau bereitstellen
   - Abnahme: App ist unter Port 4177 erreichbar.
   - Prüfung: HTTP-Aufruf und Browser-Ladetest
-
