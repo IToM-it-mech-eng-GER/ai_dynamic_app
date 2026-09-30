@@ -11,6 +11,15 @@ import {
   moveWizardStep,
   normalizeScenario,
 } from "./scenario.js";
+import {
+  PROFILE_STORAGE_KEY,
+  cloneSetup,
+  normalizeProfileName,
+  readProfiles,
+  removeProfile,
+  serializeProfiles,
+  upsertProfile,
+} from "./profiles.js";
 
 const STEP_NAMES = ["Persönlich", "Investment", "Entnahme", "Strategie", "Steuern", "Produktdetail"];
 const STRING_SCENARIO_FIELDS = new Set(["withdrawalFrequency", "withdrawalType"]);
@@ -32,6 +41,14 @@ const elements = {
   nextStep: getElement("next-step"),
   overviewPanel: getElement("overview-panel"),
   overviewTab: getElement("overview-tab"),
+  profileEmpty: getElement("profile-empty"),
+  profileForm: getElement("profile-form"),
+  profileList: getElement("profile-list"),
+  profileName: getElement("profile-name"),
+  profilePanel: getElement("profile-panel"),
+  profileStatus: getElement("profile-status"),
+  profilesClose: getElement("profiles-close"),
+  profilesToggle: getElement("profiles-toggle"),
   previousStep: getElement("previous-step"),
   productCards: getElement("product-cards"),
   productCount: getElement("product-count"),
@@ -76,6 +93,10 @@ elements.settingsToggle.addEventListener("click", () => setSettingsCollapsed(tru
 elements.settingsOpen.addEventListener("click", () => setSettingsCollapsed(false));
 elements.overviewTab.addEventListener("click", () => setDetailTab("overview"));
 elements.costTab.addEventListener("click", () => setDetailTab("cost"));
+elements.profilesToggle.addEventListener("click", () => setProfilesOpen(!state.profilesOpen));
+elements.profilesClose.addEventListener("click", () => setProfilesOpen(false));
+elements.profileForm.addEventListener("submit", handleProfileSave);
+elements.profileList.addEventListener("click", handleProfileAction);
 elements.viewport.addEventListener("pointerdown", handlePointerDown);
 elements.viewport.addEventListener("pointerup", handlePointerUp);
 elements.viewport.addEventListener("pointercancel", () => { swipeStart = null; });
@@ -91,6 +112,8 @@ function createInitialState() {
   return {
     detailTab: "overview",
     products,
+    profiles: readStoredProfiles(),
+    profilesOpen: false,
     selectedId: products[0].id,
     settingsCollapsed: false,
     step: 0,
@@ -113,6 +136,7 @@ function render({ syncInputs = true } = {}) {
   renderDependencies();
   renderDetailTabs();
   renderPanelState();
+  renderProfiles();
 
   if (syncInputs) syncForms(getSelectedProduct());
 }
@@ -259,6 +283,114 @@ function renderPanelState() {
   elements.settingsPanel.inert = state.settingsCollapsed;
   elements.settingsOpen.hidden = !state.settingsCollapsed;
   elements.settingsToggle.setAttribute("aria-expanded", String(!state.settingsCollapsed));
+}
+
+function renderProfiles() {
+  elements.profilePanel.hidden = !state.profilesOpen;
+  elements.profilesToggle.setAttribute("aria-expanded", String(state.profilesOpen));
+  elements.profileList.replaceChildren(...state.profiles.map(createProfileItem));
+  elements.profileEmpty.hidden = state.profiles.length > 0;
+}
+
+function createProfileItem(profile) {
+  const item = createElement("article", "profile-item");
+  const heading = createElement("div", "profile-item-heading");
+  heading.append(
+    createElement("strong", "", profile.name),
+    createElement("time", "", formatProfileDate(profile.savedAt)),
+  );
+  const details = createElement(
+    "p",
+    "",
+    `${profile.setup.products.length} Produkte · Alter ${profile.setup.products[0].scenario.currentAge}`,
+  );
+  const actions = createElement("div", "profile-item-actions");
+  const loadButton = createElement("button", "profile-action primary", "Laden");
+  loadButton.type = "button";
+  loadButton.dataset.profileAction = "load";
+  loadButton.dataset.profileId = profile.id;
+  const deleteButton = createElement("button", "profile-action", "Löschen");
+  deleteButton.type = "button";
+  deleteButton.dataset.profileAction = "delete";
+  deleteButton.dataset.profileId = profile.id;
+  actions.append(loadButton, deleteButton);
+  item.append(heading, details, actions);
+  return item;
+}
+
+function handleProfileSave(event) {
+  event.preventDefault();
+  const name = normalizeProfileName(elements.profileName.value);
+  if (!name) {
+    elements.profileStatus.textContent = "Bitte einen Profilnamen eingeben.";
+    elements.profileName.focus();
+    return;
+  }
+
+  state.profiles = upsertProfile(state.profiles, name, createSetupSnapshot());
+  if (!persistProfiles(state.profiles)) return;
+  elements.profileName.value = "";
+  elements.profileStatus.textContent = `„${name}“ gespeichert.`;
+  renderProfiles();
+}
+
+function handleProfileAction(event) {
+  const button = event.target.closest("button[data-profile-action]");
+  if (!button) return;
+  const profile = state.profiles.find((item) => item.id === button.dataset.profileId);
+  if (!profile) return;
+
+  if (button.dataset.profileAction === "load") {
+    const setup = cloneSetup(profile.setup);
+    state.products = setup.products;
+    state.selectedId = setup.selectedId;
+    state.step = 0;
+    state.detailTab = "overview";
+    state.profilesOpen = false;
+    elements.profileStatus.textContent = `„${profile.name}“ geladen.`;
+    render();
+    return;
+  }
+
+  state.profiles = removeProfile(state.profiles, profile.id);
+  if (!persistProfiles(state.profiles)) return;
+  elements.profileStatus.textContent = `„${profile.name}“ gelöscht.`;
+  renderProfiles();
+}
+
+function createSetupSnapshot() {
+  return cloneSetup({
+    products: state.products,
+    selectedId: state.selectedId,
+  });
+}
+
+function setProfilesOpen(open) {
+  state.profilesOpen = open;
+  renderProfiles();
+  if (open) elements.profileName.focus();
+}
+
+function readStoredProfiles() {
+  try {
+    return readProfiles(window.localStorage.getItem(PROFILE_STORAGE_KEY));
+  } catch {
+    return [];
+  }
+}
+
+function persistProfiles(profiles) {
+  try {
+    window.localStorage.setItem(PROFILE_STORAGE_KEY, serializeProfiles(profiles));
+    return true;
+  } catch {
+    elements.profileStatus.textContent = "Profile konnten lokal nicht gespeichert werden.";
+    return false;
+  }
+}
+
+function formatProfileDate(value) {
+  return new Intl.DateTimeFormat("de-DE", { dateStyle: "medium" }).format(new Date(value));
 }
 
 function syncForms(product) {

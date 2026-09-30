@@ -30,6 +30,7 @@
       <nav class="view-tabs" aria-label="Auswertung">
         <a href="#chart-title" aria-current="page">Ablaufleistungen</a>
         <a href="#comparison-title">Vergleich</a>
+        <button id="profiles-toggle" type="button" aria-expanded="false" aria-controls="profile-panel">Profile</button>
       </nav>
       <div class="header-actions">
         <span class="local-badge">Lokal berechnet</span>
@@ -37,6 +38,22 @@
           <span aria-hidden="true">↺</span><span class="button-label">Zurücksetzen</span>
         </button>
       </div>
+      <section class="profile-panel" id="profile-panel" aria-labelledby="profiles-title" hidden>
+        <div class="profile-panel-heading">
+          <div><p class="eyebrow">Deine Setups</p><h2 id="profiles-title">Profile</h2></div>
+          <button class="profile-close" id="profiles-close" type="button" aria-label="Profile schließen">×</button>
+        </div>
+        <form class="profile-save" id="profile-form" autocomplete="off">
+          <label for="profile-name">Aktuelles Setup speichern</label>
+          <div class="profile-save-row">
+            <input id="profile-name" name="profileName" type="text" maxlength="48" placeholder="z. B. Ruhestand 2045" />
+            <button class="button button-primary" type="submit">Speichern</button>
+          </div>
+          <p class="profile-status" id="profile-status" aria-live="polite"></p>
+        </form>
+        <div class="profile-list" id="profile-list" aria-live="polite"></div>
+        <p class="profile-empty" id="profile-empty">Noch keine Profile gespeichert.</p>
+      </section>
     </header>
 
     <main id="main-content" tabindex="-1">
