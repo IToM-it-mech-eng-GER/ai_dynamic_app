@@ -44,7 +44,8 @@ Die Rechenlogik wird vor der Umsetzung mit Node-Tests beschrieben. Geprüft werd
 ## Erfolgskriterien
 
 - Ein bis drei Produkte lassen sich hinzufügen, auswählen, bearbeiten und entfernen.
-- Jedes Produkt besitzt eigene Werte für Name, Startkapital, Sparrate, Rendite und Kostenquote.
+- Jedes Produkt besitzt eigene Werte für Name, Startkapital, Sparrate, Rendite, Kostenquote und ein vollständiges Szenario über alle sechs Eingabeseiten.
+- Beim Wechsel des Produkts werden alle sechs zugehörigen Seiten mit den gespeicherten Produktwerten geladen.
 - Persönliches Alter, Rentenalter und Lebenserwartung bestimmen den Zeitraum.
 - Eine aktivierbare Entnahmephase stoppt die Sparrate ab Rentenbeginn und berücksichtigt Entnahme, Rendite und optionale Inflation.
 - Rebalancing, Fondswechsel, politische Szenarien und Steuereinstellungen lassen sich aktivieren und einstellen.

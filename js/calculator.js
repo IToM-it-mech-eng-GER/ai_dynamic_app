@@ -39,6 +39,7 @@ export function normalizeProduct(product = {}) {
     annualFee: normalizeProductNumber(product.annualFee, "annualFee"),
     annualCustodyFee: normalizeProductNumber(product.annualCustodyFee, "annualCustodyFee"),
     transactionFee: normalizeProductNumber(product.transactionFee, "transactionFee"),
+    scenario: normalizeScenario(product.scenario),
   };
 }
 

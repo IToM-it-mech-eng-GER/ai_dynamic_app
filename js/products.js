@@ -1,4 +1,5 @@
 import { normalizeProduct } from "./calculator.js";
+import { createScenario } from "./scenario.js";
 
 const COLORS = ["#d34d6f", "#0f766e", "#3648a8"];
 const DEFAULT_RETURNS = [6, 7, 8];
@@ -38,6 +39,7 @@ function createProduct(index) {
       monthlyContribution: 300,
       annualReturn: DEFAULT_RETURNS[index - 1],
       annualFee: 0.2,
+      scenario: createScenario(),
     }),
   };
 }

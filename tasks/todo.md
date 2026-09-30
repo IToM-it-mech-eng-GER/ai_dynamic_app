@@ -35,3 +35,7 @@
 - [x] Referenzoptik und Unterfunktionen vervollständigen
   - Abnahme: Entnahme, Strategie, politische Szenarien, Steuern und Depotkosten reagieren auf Eingaben.
   - Prüfung: `npm run check` und Browserprüfung
+
+- [x] Szenarien je Produkt isolieren
+  - Abnahme: Änderungen an Plan 1 verändern keine der sechs Eingabeseiten von Plan 2 oder 3.
+  - Prüfung: `npm test` und Produktwechsel im Browser

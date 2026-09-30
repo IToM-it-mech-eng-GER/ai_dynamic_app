@@ -52,6 +52,7 @@ Der leere Projektordner erhält eine kleine statische App nach dem Muster der 34
 - Eingabebereich ein- und ausklappbar machen
 - Sechs Unterseiten mit Pfeilnavigation und horizontaler Wischgeste umsetzen
 - Aktivierte Funktionen zeigen ihre zugehörigen Eingaben unmittelbar an
+- Jedes Produkt erhält ein unabhängiges Szenario für alle sechs Seiten
 
 ### 3. Gestaltung und Prüfung
 

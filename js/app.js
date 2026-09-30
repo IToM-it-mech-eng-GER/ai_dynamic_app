@@ -7,7 +7,6 @@ import {
   updateProduct,
 } from "./products.js";
 import {
-  createScenario,
   getSwipeStep,
   moveWizardStep,
   normalizeScenario,
@@ -92,7 +91,6 @@ function createInitialState() {
   return {
     detailTab: "overview",
     products,
-    scenario: createScenario(),
     selectedId: products[0].id,
     settingsCollapsed: false,
     step: 0,
@@ -103,7 +101,7 @@ function render({ syncInputs = true } = {}) {
   ensureSelection();
   const plans = state.products.map((product) => ({
     product,
-    result: calculatePlan(product, state.scenario),
+    result: calculatePlan(product, product.scenario),
   }));
 
   renderProductCards(plans);
@@ -138,7 +136,7 @@ function renderProductCards(plans) {
     button.append(title);
     if (index === bestIndex && plans.length > 1) button.append(createElement("span", "best-label", "Höchster Wert"));
     button.append(
-      createElement("span", "card-label", `Vermögen mit ${state.scenario.retirementAge}`),
+      createElement("span", "card-label", `Vermögen mit ${product.scenario.retirementAge}`),
       createElement("strong", "card-value", money.format(result.retirementBalance)),
       createCardMeta(result),
     );
@@ -204,7 +202,7 @@ function renderStatus(plans) {
   const result = selectedPlan.result;
   elements.productCount.textContent = String(state.products.length);
   elements.selectedPosition.textContent = `Produkt ${selectedIndex + 1} von ${state.products.length}`;
-  elements.chartRange.textContent = `${state.scenario.currentAge} bis ${result.endAge} Jahre`;
+  elements.chartRange.textContent = `${getSelectedScenario().currentAge} bis ${result.endAge} Jahre`;
   elements.removeProduct.disabled = state.products.length === 1;
   elements.addProduct.disabled = state.products.length === 3;
   elements.chartDescription.textContent = plans
@@ -238,12 +236,13 @@ function renderWizard() {
 }
 
 function renderDependencies() {
+  const scenario = getSelectedScenario();
   document.querySelectorAll("[data-dependent]").forEach((container) => {
-    const enabled = Boolean(state.scenario[container.dataset.dependent]);
+    const enabled = Boolean(scenario[container.dataset.dependent]);
     container.hidden = !enabled;
     container.inert = !enabled;
   });
-  elements.withdrawalUnit.textContent = state.scenario.withdrawalType === "percent" ? "%" : "€";
+  elements.withdrawalUnit.textContent = scenario.withdrawalType === "percent" ? "%" : "€";
 }
 
 function renderDetailTabs() {
@@ -263,11 +262,12 @@ function renderPanelState() {
 }
 
 function syncForms(product) {
+  const scenario = product.scenario;
   document.querySelectorAll("[data-product-field]").forEach((field) => {
     field.value = String(product[field.dataset.productField]);
   });
   document.querySelectorAll("[data-scenario-field]").forEach((field) => {
-    const value = state.scenario[field.dataset.scenarioField];
+    const value = scenario[field.dataset.scenarioField];
     if (field instanceof HTMLInputElement && field.type === "checkbox") field.checked = value;
     else if (field instanceof HTMLInputElement && field.type === "radio") field.checked = field.value === value;
     else field.value = String(value);
@@ -286,7 +286,9 @@ function handleSettingsInput(event) {
   }
   if (scenarioKey) {
     const value = readScenarioField(field, scenarioKey);
-    state.scenario = normalizeScenario({ ...state.scenario, [scenarioKey]: value });
+    const selectedProduct = getSelectedProduct();
+    const scenario = normalizeScenario({ ...selectedProduct.scenario, [scenarioKey]: value });
+    state.products = updateProduct(state.products, state.selectedId, { scenario });
   }
   render({ syncInputs: false });
 }
@@ -372,6 +374,10 @@ function ensureSelection() {
 
 function getSelectedProduct() {
   return state.products.find((product) => product.id === state.selectedId);
+}
+
+function getSelectedScenario() {
+  return getSelectedProduct().scenario;
 }
 
 function getColorClass(product) {
