@@ -148,15 +148,15 @@ button { color: inherit; }
 .profile-panel {
   position: absolute;
   z-index: 30;
-  top: 62px;
+  top: 68px;
   right: 24px;
-  width: min(390px, calc(100vw - 32px));
+  width: min(420px, calc(100vw - 32px));
   max-height: calc(100vh - 80px);
   overflow-y: auto;
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 18px;
   background: var(--surface);
-  box-shadow: 0 18px 42px rgb(15 23 42 / 18%);
+  box-shadow: 0 18px 42px rgb(15 23 42 / 14%);
 }
 .profile-panel-heading, .profile-save-row, .profile-item-heading, .profile-item-actions {
   display: flex;
@@ -164,45 +164,60 @@ button { color: inherit; }
 }
 .profile-panel-heading {
   justify-content: space-between;
-  padding: 18px 18px 10px;
+  padding: 20px 20px 14px;
+  border-bottom: 1px solid var(--line);
 }
-.profile-panel-heading h2 { margin: 0; font-size: 20px; letter-spacing: -.03em; }
+.profile-panel-heading h2 { margin: 2px 0 0; font-size: 22px; letter-spacing: -.04em; }
 .profile-close {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
   border: 0;
+  border-radius: 9px;
   background: transparent;
   color: var(--muted);
-  font-size: 22px;
+  font-size: 20px;
   cursor: pointer;
 }
-.profile-save-row { gap: 8px; padding: 0 18px 16px; }
+.profile-close:hover { background: var(--soft); color: var(--ink); }
+.profile-save { padding: 16px 20px 4px; }
+.profile-save label { display: block; margin-bottom: 8px; color: var(--text); font-size: 12px; font-weight: 800; }
+.profile-save-row { gap: 8px; padding: 0 0 10px; }
 .profile-save-row input {
   min-width: 0;
   flex: 1;
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: 10px;
   background: #f8fafc;
   padding: 10px 11px;
   color: var(--ink);
   font: inherit;
 }
+.profile-save-row input::placeholder { color: #9aa4b3; }
 .button {
   border: 0;
-  border-radius: 9px;
-  padding: 10px 13px;
+  min-height: 42px;
+  border-radius: 10px;
+  padding: 0 15px;
   cursor: pointer;
   font: inherit;
   font-weight: 750;
 }
 .button-primary { background: var(--accent); color: #fff; }
-.profile-status { min-height: 18px; margin: -6px 18px 10px; color: var(--muted); font-size: 12px; }
-.profile-list { display: grid; gap: 8px; padding: 0 18px 18px; }
-.profile-empty { margin: 0 18px 18px; color: var(--muted); font-size: 13px; }
-.profile-item { border: 1px solid var(--line); border-radius: 11px; padding: 11px; }
+.profile-status { min-height: 18px; margin: 0 0 10px; color: var(--muted); font-size: 12px; }
+.profile-list { display: grid; gap: 8px; padding: 10px 20px 20px; border-top: 1px solid var(--line); }
+.profile-empty { margin: 0 20px 20px; border: 1px dashed #cfd6df; border-radius: 10px; padding: 14px; color: var(--muted); font-size: 13px; text-align: center; }
+.profile-item { border: 1px solid var(--line); border-radius: 12px; background: #fbfcfd; padding: 12px; }
 .profile-item-heading { justify-content: space-between; gap: 8px; }
 .profile-item-heading strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-item-heading time { flex: 0 0 auto; color: var(--muted); font-size: 11px; }
 .profile-item p { margin: 5px 0 9px; color: var(--muted); font-size: 12px; }
 .profile-item-actions { gap: 7px; }
-.profile-action { border: 0; border-radius: 7px; background: var(--soft); padding: 7px 9px; cursor: pointer; font-size: 12px; font-weight: 700; }
+.profile-action { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 7px 11px; cursor: pointer; font-size: 12px; font-weight: 750; }
+.profile-action:hover { border-color: #b7c1ce; background: var(--soft); }
+.profile-action[data-profile-action="load"] { background: var(--ink); color: #fff; }
+.profile-action[data-profile-action="load"]:hover { background: #1b2738; }
 .profile-action[data-profile-action="delete"] { color: #b42318; }
 
 main { padding: 14px; }
@@ -547,7 +562,7 @@ footer { padding: 4px 18px 22px; color: var(--muted); font-size: 10px; text-alig
   main { padding: 8px; }
   .app-header { min-height: 60px; }
   .brand small, .local-badge, .button-label { display: none; }
-  .profile-panel { top: 54px; right: 8px; width: calc(100vw - 16px); }
+  .profile-panel { top: 60px; right: 8px; width: calc(100vw - 16px); }
   .header-actions { gap: 6px; }
   .workspace, .settings-panel { border-radius: 14px; }
   .workspace { padding: 12px; }
