@@ -39,3 +39,7 @@
 - [x] Szenarien je Produkt isolieren
   - Abnahme: Änderungen an Plan 1 verändern keine der sechs Eingabeseiten von Plan 2 oder 3.
   - Prüfung: `npm test` und Produktwechsel im Browser
+
+- [x] Privatdepot mit steuerlicher Nettoentnahme ergänzen
+  - Abnahme: FIFO, Teilfreistellung, Freibeträge und gesetzliche Rente bestimmen den Bruttoverkauf je Produkt.
+  - Prüfung: `npm test`, Produktwechsel sowie Desktop- und Mobilansicht im Browser

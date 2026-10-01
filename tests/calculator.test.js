@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  calculateFifoSale,
+  calculateIncomeTax2026,
   calculatePlan,
+  getPensionTaxableShare,
   normalizeHorizon,
   normalizeProduct,
 } from "../js/calculator.js";
@@ -225,4 +228,204 @@ test("behandelt Rebalancing als Renditeabzug und niemals als Bonus", () => {
 
   assert.equal(withRebalancing.netAnnualReturn, 5.3);
   assert.ok(withRebalancing.endingBalance < withoutRebalancing.endingBalance);
+});
+
+test("ordnet Verkäufe im Privatdepot nach dem FIFO-Prinzip zu", () => {
+  const sale = calculateFifoSale([
+    { marketValue: 200, costBasis: 100 },
+    { marketValue: 200, costBasis: 180 },
+  ], 250);
+
+  assert.equal(sale.proceeds, 250);
+  assert.equal(sale.realizedGain, 105);
+  assert.deepEqual(sale.remainingLots, [
+    { marketValue: 150, costBasis: 135 },
+  ]);
+});
+
+test("bildet den Einkommensteuertarif 2026 und das Splittingverfahren ab", () => {
+  assert.equal(calculateIncomeTax2026(12_348), 0);
+  assert.ok(calculateIncomeTax2026(30_000) > 0);
+  assert.equal(
+    calculateIncomeTax2026(24_696, "joint"),
+    0,
+  );
+});
+
+test("ermittelt den gesetzlichen Besteuerungsanteil der Rente", () => {
+  assert.equal(getPensionTaxableShare(2005), 50);
+  assert.equal(getPensionTaxableShare(2026), 84);
+  assert.equal(getPensionTaxableShare(2056), 99);
+  assert.equal(getPensionTaxableShare(2058), 100);
+});
+
+test("verkauft im Privatdepot brutto mehr als die gewünschte Nettoentnahme", () => {
+  const result = calculatePlan(
+    {
+      initialCapital: 10_000,
+      monthlyContribution: 0,
+      annualReturn: 10,
+      annualFee: 0,
+    },
+    {
+      currentAge: 60,
+      retirementAge: 61,
+      lifeExpectancy: 62,
+      depotType: "private",
+      withdrawalEnabled: true,
+      withdrawalAmount: 1_000,
+      withdrawalFrequency: "yearly",
+      withdrawalType: "euro",
+      postRetirementReturn: 0,
+      inflationEnabled: false,
+      rebalancingEnabled: false,
+      fundSwitchEnabled: false,
+      personalTaxEnabled: false,
+      socialContributionsEnabled: false,
+      saverAllowance: 0,
+      partialExemptionRate: 0,
+      solidarityEnabled: false,
+      taxDisabled: false,
+    },
+  );
+
+  assert.ok(Math.abs(result.totalWithdrawals - 1_000) < 0.01);
+  assert.ok(result.grossWithdrawals > result.totalWithdrawals);
+  assert.ok(Math.abs(result.grossWithdrawals - result.totalWithdrawals - result.estimatedTaxes) < 0.01);
+  assert.ok(result.endingBalance < 10_000);
+});
+
+test("wendet Teilfreistellung und Sparer-Pauschbetrag jährlich auf FIFO-Gewinne an", () => {
+  const result = calculatePlan(
+    {
+      initialCapital: 10_000,
+      monthlyContribution: 0,
+      annualReturn: 10,
+      annualFee: 0,
+    },
+    {
+      currentAge: 60,
+      retirementAge: 61,
+      lifeExpectancy: 62,
+      depotType: "private",
+      withdrawalEnabled: true,
+      withdrawalAmount: 5_000,
+      withdrawalFrequency: "yearly",
+      withdrawalType: "euro",
+      postRetirementReturn: 0,
+      inflationEnabled: false,
+      rebalancingEnabled: false,
+      fundSwitchEnabled: false,
+      personalTaxEnabled: false,
+      socialContributionsEnabled: false,
+      saverAllowance: 1_000,
+      partialExemptionRate: 30,
+      solidarityEnabled: true,
+      taxDisabled: false,
+    },
+  );
+
+  assert.equal(result.estimatedTaxes, 0);
+  assert.ok(Math.abs(result.grossWithdrawals - 5_000) < 0.01);
+});
+
+test("berücksichtigt die gesetzliche Rente bei der Günstigerprüfung", () => {
+  const baseScenario = {
+    currentAge: 60,
+    retirementAge: 61,
+    lifeExpectancy: 62,
+    depotType: "private",
+    withdrawalEnabled: true,
+    withdrawalAmount: 5_000,
+    withdrawalFrequency: "yearly",
+    withdrawalType: "euro",
+    postRetirementReturn: 0,
+    inflationEnabled: false,
+    rebalancingEnabled: false,
+    fundSwitchEnabled: false,
+    personalTaxEnabled: true,
+    socialContributionsEnabled: false,
+    saverAllowance: 0,
+    partialExemptionRate: 0,
+    solidarityEnabled: false,
+    taxDisabled: false,
+  };
+  const product = {
+    initialCapital: 10_000,
+    monthlyContribution: 0,
+    annualReturn: 10,
+    annualFee: 0,
+  };
+  const withoutPension = calculatePlan(product, {
+    ...baseScenario,
+    statutoryPensionMonthly: 0,
+  });
+  const withPension = calculatePlan(product, {
+    ...baseScenario,
+    statutoryPensionMonthly: 4_000,
+  });
+
+  assert.ok(withPension.estimatedTaxes > withoutPension.estimatedTaxes);
+});
+
+test("setzt den Sparer-Pauschbetrag in jedem Entnahmejahr neu an", () => {
+  const product = {
+    initialCapital: 10_000,
+    monthlyContribution: 0,
+    annualReturn: 50,
+    annualFee: 0,
+  };
+  const scenario = {
+    currentAge: 60,
+    retirementAge: 61,
+    depotType: "private",
+    withdrawalEnabled: true,
+    withdrawalAmount: 5_000,
+    withdrawalFrequency: "yearly",
+    withdrawalType: "euro",
+    postRetirementReturn: 0,
+    inflationEnabled: false,
+    rebalancingEnabled: false,
+    fundSwitchEnabled: false,
+    personalTaxEnabled: false,
+    socialContributionsEnabled: false,
+    saverAllowance: 1_000,
+    partialExemptionRate: 0,
+    solidarityEnabled: false,
+    taxDisabled: false,
+  };
+  const oneYear = calculatePlan(product, { ...scenario, lifeExpectancy: 62 });
+  const twoYears = calculatePlan(product, { ...scenario, lifeExpectancy: 63 });
+
+  assert.ok(oneYear.estimatedTaxes > 0);
+  assert.ok(Math.abs(twoYears.estimatedTaxes - oneYear.estimatedTaxes * 2) < 0.01);
+});
+
+test("deaktiviert auch im Privatdepot alle Entnahmesteuern", () => {
+  const result = calculatePlan(
+    {
+      initialCapital: 10_000,
+      monthlyContribution: 0,
+      annualReturn: 10,
+      annualFee: 0,
+    },
+    {
+      currentAge: 60,
+      retirementAge: 61,
+      lifeExpectancy: 62,
+      depotType: "private",
+      withdrawalEnabled: true,
+      withdrawalAmount: 1_000,
+      withdrawalFrequency: "yearly",
+      withdrawalType: "euro",
+      postRetirementReturn: 0,
+      inflationEnabled: false,
+      rebalancingEnabled: false,
+      fundSwitchEnabled: false,
+      taxDisabled: true,
+    },
+  );
+
+  assert.equal(result.estimatedTaxes, 0);
+  assert.ok(Math.abs(result.grossWithdrawals - result.totalWithdrawals) < 0.01);
 });

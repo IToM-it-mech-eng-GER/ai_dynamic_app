@@ -107,7 +107,7 @@
                     <th scope="col">Produkt</th>
                     <th scope="col">Einzahlungen</th>
                     <th scope="col">Zur Rente</th>
-                    <th scope="col">Entnahmen</th>
+                    <th scope="col">Netto-Entnahmen</th>
                     <th scope="col">Am Lebensende</th>
                   </tr>
                 </thead>
@@ -145,10 +145,32 @@
                       <h3 id="step-personal-title" tabindex="-1">Persönliche Parameter</h3>
                       <p>Diese Angaben bestimmen Anspar- und Entnahmezeitraum.</p>
                     </header>
+                    <fieldset class="segment-field depot-type-field">
+                      <legend>Depotart</legend>
+                      <div class="segmented depot-type-control">
+                        <label><input data-scenario-field="depotType" type="radio" name="depot-type" value="pension" /><span>Renten Depot</span></label>
+                        <label><input data-scenario-field="depotType" type="radio" name="depot-type" value="private" /><span>Privat Depot</span></label>
+                      </div>
+                    </fieldset>
                     <div class="field-list">
                       <label class="row-field" for="current-age"><span>Alter</span><span class="input-with-unit"><input id="current-age" data-scenario-field="currentAge" type="number" min="18" max="99" step="1" inputmode="numeric" /><i>Jahre</i></span></label>
                       <label class="row-field" for="retirement-age"><span>Rentenbeginn</span><span class="input-with-unit"><input id="retirement-age" data-scenario-field="retirementAge" type="number" min="19" max="100" step="1" inputmode="numeric" /><i>Jahre</i></span></label>
                       <label class="row-field" for="life-expectancy"><span>Lebenserwartung</span><span class="input-with-unit"><input id="life-expectancy" data-scenario-field="lifeExpectancy" type="number" min="20" max="110" step="1" inputmode="numeric" /><i>Jahre</i></span></label>
+                    </div>
+                    <div class="private-depot-settings" data-depot-mode="private" hidden>
+                      <div class="tax-model-heading">
+                        <span>Steuermodell 2026</span>
+                        <strong id="private-tax-year">Rentenbeginn 2056</strong>
+                      </div>
+                      <div class="field-list">
+                        <label class="row-field" for="statutory-pension"><span>Gesetzliche Bruttorente</span><span class="input-with-unit"><input id="statutory-pension" data-scenario-field="statutoryPensionMonthly" type="number" min="0" max="100000" step="50" inputmode="decimal" /><i>€/Monat</i></span></label>
+                        <label class="row-field" for="partial-exemption"><span>ETF-Typ</span><span class="input-with-unit wide"><select id="partial-exemption" data-scenario-field="partialExemptionRate"><option value="30">Aktienfonds · 30 % frei</option><option value="15">Mischfonds · 15 % frei</option><option value="0">Sonstiger ETF · 0 % frei</option></select></span></label>
+                      </div>
+                      <fieldset class="segment-field compact-segment">
+                        <legend>Veranlagung</legend>
+                        <div class="segmented"><label><input data-scenario-field="taxAssessment" type="radio" name="tax-assessment" value="single" /><span>Einzeln</span></label><label><input data-scenario-field="taxAssessment" type="radio" name="tax-assessment" value="joint" /><span>Gemeinsam</span></label></div>
+                      </fieldset>
+                      <p class="tax-model-note"><strong id="pension-tax-share">99 % Rentenanteil steuerpflichtig</strong><span>FIFO, Grundfreibetrag und Günstigerprüfung werden berücksichtigt. Das Startkapital gilt als Anschaffungskosten; bei gemeinsamer Veranlagung wird kein weiteres Partnereinkommen angesetzt.</span></p>
                     </div>
                   </section>
 
@@ -181,6 +203,7 @@
                       <fieldset class="segment-field"><legend>Periode</legend><div class="segmented"><label><input data-scenario-field="withdrawalFrequency" type="radio" name="withdrawal-frequency" value="monthly" /><span>Monatlich</span></label><label><input data-scenario-field="withdrawalFrequency" type="radio" name="withdrawal-frequency" value="yearly" /><span>Jährlich</span></label></div></fieldset>
                       <fieldset class="segment-field"><legend>Eingabe</legend><div class="segmented"><label><input data-scenario-field="withdrawalType" type="radio" name="withdrawal-type" value="euro" /><span>Euro</span></label><label><input data-scenario-field="withdrawalType" type="radio" name="withdrawal-type" value="percent" /><span>Prozent</span></label></div></fieldset>
                       <div class="field-list"><label class="row-field" for="withdrawal-amount"><span>Netto-Entnahme</span><span class="input-with-unit"><input id="withdrawal-amount" data-scenario-field="withdrawalAmount" type="number" min="0" max="100000" step="10" inputmode="decimal" /><i id="withdrawal-unit">€</i></span></label></div>
+                      <p class="calculation-hint" id="withdrawal-explanation">Die Entnahme reduziert das Depot in gleicher Höhe.</p>
                       <label class="switch-row" for="inflation-enabled"><span>Inflation berücksichtigen</span><input id="inflation-enabled" data-scenario-field="inflationEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
                       <div class="field-list dependent-fields" data-dependent="inflationEnabled"><label class="row-field" for="inflation-rate"><span>Inflation</span><span class="input-with-unit"><input id="inflation-rate" data-scenario-field="inflationRate" type="number" min="0" max="15" step="0.1" inputmode="decimal" /><i>%</i></span></label></div>
                     </div>
@@ -195,18 +218,19 @@
                       <label class="row-field" for="fund-switch-age"><span>Wechsel im Alter von</span><span class="input-with-unit"><input id="fund-switch-age" data-scenario-field="fundSwitchAge" type="number" min="18" max="100" step="1" inputmode="numeric" /><i>J.</i></span></label>
                       <label class="row-field" for="fund-switch-percentage"><span>Verkaufter Anteil</span><span class="input-with-unit"><input id="fund-switch-percentage" data-scenario-field="fundSwitchPercentage" type="number" min="0" max="100" step="1" inputmode="decimal" /><i>%</i></span></label>
                     </div>
-                    <details><summary>Steuerliche Auswirkung</summary><p>Ein Fondswechsel realisiert im Modell anteilige Transaktionskosten. Die Steuerwirkung wird in der Produktübersicht separat ausgewiesen.</p></details>
+                    <details><summary>Steuerliche Auswirkung</summary><p>Ein Fondswechsel realisiert im Modell anteilige Transaktionskosten. Eine mögliche Steuer auf den Fondswechsel selbst ist noch nicht enthalten.</p></details>
                   </section>
 
                   <section class="wizard-step" data-step="4" aria-labelledby="step-tax-title">
                     <header class="step-heading"><span class="step-kicker">Szenario</span><h3 id="step-tax-title" tabindex="-1">Politik &amp; Steuern</h3><p>Vereinfachte Annahmen für den Nettovergleich.</p></header>
-                    <label class="switch-row" for="personal-tax-enabled"><strong>Persönlicher Steuersatz</strong><input id="personal-tax-enabled" data-scenario-field="personalTaxEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
-                    <div class="field-list dependent-fields" data-dependent="personalTaxEnabled"><label class="row-field" for="marginal-tax-rate"><span>Grenzsteuersatz</span><span class="input-with-unit"><input id="marginal-tax-rate" data-scenario-field="marginalTaxRate" type="number" min="0" max="60" step="0.1" inputmode="decimal" /><i>%</i></span></label></div>
-                    <label class="switch-row" for="social-contributions-enabled"><strong>Sozialabgaben auf Kapital</strong><input id="social-contributions-enabled" data-scenario-field="socialContributionsEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
+                    <label class="switch-row" for="personal-tax-enabled"><strong id="personal-tax-label">Persönlicher Steuersatz</strong><input id="personal-tax-enabled" data-scenario-field="personalTaxEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
+                    <div class="field-list dependent-fields" data-dependent="personalTaxEnabled" data-depot-mode="pension"><label class="row-field" for="marginal-tax-rate"><span>Grenzsteuersatz</span><span class="input-with-unit"><input id="marginal-tax-rate" data-scenario-field="marginalTaxRate" type="number" min="0" max="60" step="0.1" inputmode="decimal" /><i>%</i></span></label></div>
+                    <p class="calculation-hint" data-depot-mode="private" hidden>Verglichen werden Abgeltungsteuer und der Tarif 2026 einschließlich der eingegebenen gesetzlichen Rente.</p>
+                    <label class="switch-row" for="social-contributions-enabled"><strong>Szenario: Sozialabgaben (3 %)</strong><input id="social-contributions-enabled" data-scenario-field="socialContributionsEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
                     <p class="impact-note">Geschätzte Modellbelastung: <strong id="political-impact">0 €</strong></p>
                     <details open><summary>Steuer-Einstellungen</summary><div class="field-list details-fields">
-                      <label class="row-field" for="saver-allowance"><span>Sparerpauschbetrag</span><span class="input-with-unit wide"><select id="saver-allowance" data-scenario-field="saverAllowance"><option value="0">Keiner (0 €)</option><option value="1000">1.000 €</option><option value="2000">2.000 €</option></select></span></label>
-                      <label class="row-field" for="base-rate"><span>Basiszins</span><span class="input-with-unit"><input id="base-rate" data-scenario-field="baseRate" type="number" min="0" max="20" step="0.1" inputmode="decimal" /><i>%</i></span></label>
+                      <label class="row-field" for="saver-allowance"><span>Verfügbarer Sparer-Pauschbetrag</span><span class="input-with-unit"><input id="saver-allowance" data-scenario-field="saverAllowance" type="number" min="0" max="2000" step="50" inputmode="decimal" /><i>€/Jahr</i></span></label>
+                      <label class="row-field" for="base-rate" data-depot-mode="pension"><span>Basiszins</span><span class="input-with-unit"><input id="base-rate" data-scenario-field="baseRate" type="number" min="0" max="20" step="0.1" inputmode="decimal" /><i>%</i></span></label>
                     </div>
                     <label class="switch-row" for="tax-disabled"><span>Steuerberechnung deaktivieren</span><input id="tax-disabled" data-scenario-field="taxDisabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
                     <label class="switch-row" for="solidarity-enabled"><span>Solidaritätszuschlag (5,5 %)</span><input id="solidarity-enabled" data-scenario-field="solidarityEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label></details>
@@ -223,7 +247,9 @@
                         <div><dt>Gesamteinzahlungen</dt><dd id="summary-contributions">0 €</dd></div>
                         <div><dt>Bruttorendite</dt><dd class="positive" id="summary-gross-return">0 €</dd></div>
                         <div><dt>Gesamtkosten</dt><dd class="negative" id="summary-costs">0 €</dd></div>
-                        <div><dt>Modellsteuern</dt><dd class="negative" id="summary-taxes">0 €</dd></div>
+                        <div><dt>Nettoentnahmen</dt><dd id="summary-net-withdrawals">0 €</dd></div>
+                        <div><dt>Bruttoverkäufe</dt><dd id="summary-gross-withdrawals">0 €</dd></div>
+                        <div><dt>Steuern &amp; Szenarioabgaben</dt><dd class="negative" id="summary-taxes">0 €</dd></div>
                         <div class="summary-total"><dt>Vermögen am Lebensende</dt><dd id="summary-ending">0 €</dd></div>
                       </dl>
                     </div>
@@ -251,7 +277,7 @@
     </main>
 
     <footer>
-      <p>Vereinfachte Modellrechnung mit frei gewählten Annahmen. Keine Anlage- oder Steuerberatung.</p>
+      <p>Steuermodell nach deutschem Recht 2026. Ohne Kirchensteuer, individuelle Sonderausgaben, Kranken- und Pflegeversicherung, Verlustverrechnung sowie Vorabpauschalen und Ausschüttungen. Keine Anlage- oder Steuerberatung.</p>
     </footer>
 
     <script type="module" src="./js/app.js"></script>

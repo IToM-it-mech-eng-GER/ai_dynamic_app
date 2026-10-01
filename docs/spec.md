@@ -38,7 +38,7 @@ Die Rechenlogik wird vor der Umsetzung mit Node-Tests beschrieben. Geprüft werd
 ## Grenzen
 
 - Immer: Eingaben begrenzen, Text sicher ausgeben, Berechnung als Modell kennzeichnen
-- Vorher fragen: neue Abhängigkeiten, Backend, externe ETF-Daten oder Steuerlogik
+- Vorher fragen: neue Abhängigkeiten, Backend oder externe ETF-Daten
 - Nie: Live-Daten vortäuschen, Nutzerdaten übertragen oder Finanzberatung versprechen
 
 ## Erfolgskriterien
@@ -50,6 +50,8 @@ Die Rechenlogik wird vor der Umsetzung mit Node-Tests beschrieben. Geprüft werd
 - Eine aktivierbare Entnahmephase stoppt die Sparrate ab Rentenbeginn und berücksichtigt Entnahme, Rendite und optionale Inflation.
 - Rebalancing, Fondswechsel, politische Szenarien und Steuereinstellungen lassen sich aktivieren und einstellen.
 - Endvermögen, Einzahlungen, Wertzuwachs, Kosten und Modellsteuern werden nachvollziehbar verglichen.
+- Je Produkt kann zwischen Renten- und Privatdepot gewechselt werden.
+- Das Privatdepot rechnet Nettoentnahmen in FIFO-Bruttoverkäufe um und berücksichtigt Teilfreistellung, Sparer-Pauschbetrag, gesetzliche Rente, Rentenbesteuerungsanteil, Grundfreibetrag, Günstigerprüfung und Solidaritätszuschlag nach dem Rechtsstand 2026.
 - Diagramm und Ergebnistabelle reagieren unmittelbar auf Änderungen.
 - Die Eingaben lassen sich ein- und ausklappen.
 - Sechs nummerierte Unterseiten lassen sich über Schaltflächen und horizontale Wischgesten wechseln.
@@ -68,4 +70,4 @@ Die Rechenlogik wird vor der Umsetzung mit Node-Tests beschrieben. Geprüft werd
 
 ## Nicht enthalten
 
-Historische Kursdaten, Produktempfehlungen, rechtsverbindliche Steuerberechnung und Speicherung über Sitzungen hinweg.
+Historische Kursdaten, Produktempfehlungen und rechtsverbindliche Steuerberatung. Im Privatdepot nicht enthalten sind Kirchensteuer, individuelle Sonderausgaben, Kranken- und Pflegeversicherung, Verlustverrechnung, Vorabpauschalen, Ausschüttungen und die Steuerwirkung eines Fondswechsels.

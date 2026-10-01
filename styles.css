@@ -419,6 +419,8 @@ th:first-child, td:first-child { text-align: left; }
 .input-with-unit { display: grid; grid-template-columns: minmax(0, 1fr) 32px; align-items: center; gap: 8px; }
 .input-with-unit.wide { grid-template-columns: minmax(0, 1fr); }
 .input-with-unit i { color: #747f91; font-style: normal; font-weight: 700; }
+[for="saver-allowance"] .input-with-unit { grid-template-columns: minmax(0, 1fr) 45px; }
+[for="saver-allowance"] i { font-size: 9px; }
 input[type="number"], input[type="text"], select {
   width: 100%;
   min-width: 0;
@@ -485,11 +487,51 @@ input:focus, select:focus { border-color: #aeb8c6; background: #fff; }
 
 .segment-field { margin: 16px 0 0; padding: 0; border: 0; }
 .segment-field legend { margin-bottom: 7px; color: var(--muted); font-size: 11px; font-weight: 750; }
+.depot-type-field { margin: 20px 0 4px; }
+.depot-type-control { border: 1px solid var(--line); background: #eef1f5; }
+.depot-type-control span { min-height: 42px; font-size: 12px; }
 .segmented label { flex: 1; cursor: pointer; }
 .segmented input { position: absolute; opacity: 0; pointer-events: none; }
 .segmented span { display: grid; min-height: 36px; place-items: center; border-radius: 7px; color: var(--text); font-size: 11px; font-weight: 800; }
 .segmented input:checked + span { background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgb(15 23 42 / 10%); }
 .segmented input:focus-visible + span { outline: 3px solid rgb(255 107 22 / 28%); }
+
+.private-depot-settings {
+  margin-top: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fafbfc;
+  padding: 16px;
+}
+.tax-model-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.tax-model-heading span {
+  border-radius: 999px;
+  background: #fff0e8;
+  color: #c44d0a;
+  padding: 5px 8px;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.tax-model-heading strong { color: var(--ink); font-size: 11px; }
+.private-depot-settings .field-list { margin-top: 8px; }
+.private-depot-settings .row-field { grid-template-columns: minmax(0, 1fr) minmax(150px, 54%); }
+.private-depot-settings [for="statutory-pension"] .input-with-unit { grid-template-columns: minmax(0, 1fr) 58px; }
+.private-depot-settings [for="statutory-pension"] i { font-size: 9px; }
+.compact-segment { margin-top: 18px; }
+.tax-model-note {
+  display: grid;
+  gap: 5px;
+  margin: 16px 0 0;
+  padding-top: 15px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.tax-model-note strong { color: var(--ink); font-size: 11px; }
+.calculation-hint { margin: 12px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
 
 details { border-bottom: 1px solid var(--line); color: var(--text); }
 details summary { padding: 18px 0; color: var(--ink); cursor: pointer; font-size: 14px; font-weight: 800; }

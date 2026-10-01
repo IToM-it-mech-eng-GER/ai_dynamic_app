@@ -24,12 +24,16 @@ test("begrenzt und trimmt Profilnamen", () => {
 
 test("speichert Profile unabhängig und ersetzt denselben Namen", () => {
   const setup = createSetup();
+  setup.products[0].scenario.depotType = "private";
+  setup.products[0].scenario.statutoryPensionMonthly = 2_100;
   const profiles = upsertProfile([], "Basis", setup, { id: "profile-1", savedAt: "2026-09-30" });
   setup.products[0].scenario.currentAge = 50;
   const replaced = upsertProfile(profiles, " basis ", setup, { id: "profile-2", savedAt: "2026-10-01" });
 
   assert.equal(profiles.length, 1);
   assert.equal(profiles[0].setup.products[0].scenario.currentAge, 37);
+  assert.equal(profiles[0].setup.products[0].scenario.depotType, "private");
+  assert.equal(profiles[0].setup.products[0].scenario.statutoryPensionMonthly, 2_100);
   assert.equal(replaced.length, 1);
   assert.equal(replaced[0].id, "profile-2");
   assert.equal(replaced[0].setup.products[0].scenario.currentAge, 50);

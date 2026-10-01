@@ -2,6 +2,10 @@ const DEFAULT_SCENARIO = Object.freeze({
   currentAge: 37,
   retirementAge: 67,
   lifeExpectancy: 85,
+  depotType: "pension",
+  statutoryPensionMonthly: 0,
+  taxAssessment: "single",
+  partialExemptionRate: 30,
   withdrawalEnabled: true,
   withdrawalAmount: 1_000,
   withdrawalFrequency: "monthly",
@@ -41,11 +45,38 @@ export function normalizeScenario(values = {}) {
     retirementAge + 1,
     110,
   );
+  const depotType = normalizeChoice(
+    values.depotType,
+    ["pension", "private"],
+    DEFAULT_SCENARIO.depotType,
+  );
+  const taxAssessment = normalizeChoice(
+    values.taxAssessment,
+    ["single", "joint"],
+    DEFAULT_SCENARIO.taxAssessment,
+  );
+  const saverAllowanceLimit = depotType === "private"
+    ? (taxAssessment === "joint" ? 2_000 : 1_000)
+    : 10_000;
 
   return {
     currentAge,
     retirementAge,
     lifeExpectancy,
+    depotType,
+    statutoryPensionMonthly: normalizeNumber(
+      values.statutoryPensionMonthly,
+      DEFAULT_SCENARIO.statutoryPensionMonthly,
+      0,
+      100_000,
+    ),
+    taxAssessment,
+    partialExemptionRate: normalizeNumber(
+      values.partialExemptionRate,
+      DEFAULT_SCENARIO.partialExemptionRate,
+      0,
+      80,
+    ),
     withdrawalEnabled: normalizeBoolean(values.withdrawalEnabled, DEFAULT_SCENARIO.withdrawalEnabled),
     withdrawalAmount: normalizeNumber(values.withdrawalAmount, DEFAULT_SCENARIO.withdrawalAmount, 0, 100_000),
     withdrawalFrequency: normalizeChoice(values.withdrawalFrequency, ["monthly", "yearly"], DEFAULT_SCENARIO.withdrawalFrequency),
@@ -61,7 +92,12 @@ export function normalizeScenario(values = {}) {
     personalTaxEnabled: normalizeBoolean(values.personalTaxEnabled, DEFAULT_SCENARIO.personalTaxEnabled),
     marginalTaxRate: normalizeNumber(values.marginalTaxRate, DEFAULT_SCENARIO.marginalTaxRate, 0, 60),
     socialContributionsEnabled: normalizeBoolean(values.socialContributionsEnabled, DEFAULT_SCENARIO.socialContributionsEnabled),
-    saverAllowance: normalizeNumber(values.saverAllowance, DEFAULT_SCENARIO.saverAllowance, 0, 10_000),
+    saverAllowance: normalizeNumber(
+      values.saverAllowance,
+      DEFAULT_SCENARIO.saverAllowance,
+      0,
+      saverAllowanceLimit,
+    ),
     baseRate: normalizeNumber(values.baseRate, DEFAULT_SCENARIO.baseRate, 0, 20),
     taxDisabled: normalizeBoolean(values.taxDisabled, DEFAULT_SCENARIO.taxDisabled),
     solidarityEnabled: normalizeBoolean(values.solidarityEnabled, DEFAULT_SCENARIO.solidarityEnabled),

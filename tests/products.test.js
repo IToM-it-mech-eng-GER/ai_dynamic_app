@@ -53,13 +53,18 @@ test("speichert die sechs Szenarien unabhängig je Produkt", () => {
     scenario: {
       ...products[1].scenario,
       currentAge: 45,
+      depotType: "private",
+      statutoryPensionMonthly: 1_800,
       withdrawalAmount: 2_000,
     },
   });
 
   assert.notEqual(products[0].scenario, products[1].scenario);
   assert.equal(updated[1].scenario.currentAge, 45);
+  assert.equal(updated[1].scenario.depotType, "private");
+  assert.equal(updated[1].scenario.statutoryPensionMonthly, 1_800);
   assert.equal(updated[1].scenario.withdrawalAmount, 2_000);
+  assert.equal(updated[0].scenario.depotType, "pension");
   assert.equal(updated[0].scenario.currentAge, products[0].scenario.currentAge);
   assert.equal(updated[0].scenario.withdrawalAmount, products[0].scenario.withdrawalAmount);
 });

@@ -21,6 +21,10 @@ test("ordnet persönliche Altersangaben in einer gültigen Reihenfolge", () => {
 
 test("begrenzt Eingaben für Entnahme und politische Annahmen", () => {
   const scenario = normalizeScenario({
+    depotType: "private",
+    statutoryPensionMonthly: 250_000,
+    taxAssessment: "joint",
+    partialExemptionRate: 120,
     withdrawalAmount: -50,
     postRetirementReturn: 80,
     inflationRate: 30,
@@ -29,10 +33,39 @@ test("begrenzt Eingaben für Entnahme und politische Annahmen", () => {
   });
 
   assert.equal(scenario.withdrawalAmount, 0);
+  assert.equal(scenario.depotType, "private");
+  assert.equal(scenario.statutoryPensionMonthly, 100_000);
+  assert.equal(scenario.taxAssessment, "joint");
+  assert.equal(scenario.partialExemptionRate, 80);
   assert.equal(scenario.postRetirementReturn, 30);
   assert.equal(scenario.inflationRate, 15);
   assert.equal(scenario.marginalTaxRate, 60);
   assert.equal(scenario.fundSwitchPercentage, 100);
+});
+
+test("behält das bisherige Rentendepot als Standard", () => {
+  const scenario = normalizeScenario();
+
+  assert.equal(scenario.depotType, "pension");
+  assert.equal(scenario.statutoryPensionMonthly, 0);
+  assert.equal(scenario.taxAssessment, "single");
+  assert.equal(scenario.partialExemptionRate, 30);
+});
+
+test("begrenzt den Sparer-Pauschbetrag im Privatdepot nach Veranlagung", () => {
+  const single = normalizeScenario({
+    depotType: "private",
+    taxAssessment: "single",
+    saverAllowance: 2_000,
+  });
+  const joint = normalizeScenario({
+    depotType: "private",
+    taxAssessment: "joint",
+    saverAllowance: 3_000,
+  });
+
+  assert.equal(single.saverAllowance, 1_000);
+  assert.equal(joint.saverAllowance, 2_000);
 });
 
 test("bewegt den Assistenten nur innerhalb seiner sechs Schritte", () => {

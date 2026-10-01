@@ -1,4 +1,8 @@
-import { calculatePlan } from "./calculator.js";
+import {
+  TAX_RULE_YEAR,
+  calculatePlan,
+  getPensionTaxableShare,
+} from "./calculator.js";
 import { renderChart } from "./chart.js";
 import {
   addProduct,
@@ -22,7 +26,12 @@ import {
 } from "./profiles.js";
 
 const STEP_NAMES = ["Persönlich", "Investment", "Entnahme", "Strategie", "Steuern", "Produktdetail"];
-const STRING_SCENARIO_FIELDS = new Set(["withdrawalFrequency", "withdrawalType"]);
+const STRING_SCENARIO_FIELDS = new Set([
+  "depotType",
+  "taxAssessment",
+  "withdrawalFrequency",
+  "withdrawalType",
+]);
 const money = new Intl.NumberFormat("de-DE", {
   style: "currency",
   currency: "EUR",
@@ -50,11 +59,15 @@ const elements = {
   profilesClose: getElement("profiles-close"),
   profilesToggle: getElement("profiles-toggle"),
   previousStep: getElement("previous-step"),
+  pensionTaxShare: getElement("pension-tax-share"),
+  personalTaxLabel: getElement("personal-tax-label"),
+  privateTaxYear: getElement("private-tax-year"),
   productCards: getElement("product-cards"),
   productCount: getElement("product-count"),
   productTabs: getElement("product-tabs"),
   removeProduct: getElement("remove-product"),
   resetButton: getElement("reset-button"),
+  saverAllowance: getElement("saver-allowance"),
   selectedPosition: getElement("selected-position"),
   settingsForm: getElement("settings-form"),
   settingsOpen: getElement("settings-open"),
@@ -65,6 +78,7 @@ const elements = {
   track: getElement("wizard-track"),
   viewport: getElement("wizard-viewport"),
   withdrawalUnit: getElement("withdrawal-unit"),
+  withdrawalExplanation: getElement("withdrawal-explanation"),
 };
 
 const summaryElements = {
@@ -72,7 +86,9 @@ const summaryElements = {
   costs: getElement("summary-costs"),
   ending: getElement("summary-ending"),
   grossReturn: getElement("summary-gross-return"),
+  grossWithdrawals: getElement("summary-gross-withdrawals"),
   name: getElement("overview-product-name"),
+  netWithdrawals: getElement("summary-net-withdrawals"),
   politicalImpact: getElement("political-impact"),
   taxes: getElement("summary-taxes"),
 };
@@ -236,9 +252,11 @@ function renderStatus(plans) {
   summaryElements.name.textContent = selectedPlan.product.name;
   summaryElements.contributions.textContent = money.format(result.totalContributions);
   summaryElements.grossReturn.textContent = formatSignedMoney(
-    result.grossEndingBalance + result.totalWithdrawals - result.totalContributions,
+    result.grossEndingBalance + result.grossWithdrawals - result.totalContributions,
   );
   summaryElements.costs.textContent = formatNegativeMoney(result.totalCosts);
+  summaryElements.netWithdrawals.textContent = money.format(result.totalWithdrawals);
+  summaryElements.grossWithdrawals.textContent = money.format(result.grossWithdrawals);
   summaryElements.taxes.textContent = formatNegativeMoney(result.estimatedTaxes);
   summaryElements.ending.textContent = money.format(result.netEndingBalance);
   summaryElements.politicalImpact.textContent = formatNegativeMoney(result.estimatedTaxes);
@@ -261,11 +279,30 @@ function renderWizard() {
 
 function renderDependencies() {
   const scenario = getSelectedScenario();
-  document.querySelectorAll("[data-dependent]").forEach((container) => {
-    const enabled = Boolean(scenario[container.dataset.dependent]);
-    container.hidden = !enabled;
-    container.inert = !enabled;
+  document.querySelectorAll("[data-dependent], [data-depot-mode]").forEach((container) => {
+    const dependencyMatches = !container.dataset.dependent
+      || Boolean(scenario[container.dataset.dependent]);
+    const depotMatches = !container.dataset.depotMode
+      || container.dataset.depotMode === scenario.depotType;
+    const visible = dependencyMatches && depotMatches;
+    container.hidden = !visible;
+    container.inert = !visible;
   });
+  const retirementStartYear = TAX_RULE_YEAR + scenario.retirementAge - scenario.currentAge;
+  const pensionTaxableShare = getPensionTaxableShare(retirementStartYear);
+  const saverAllowanceMaximum = scenario.depotType === "private"
+    ? (scenario.taxAssessment === "joint" ? 2_000 : 1_000)
+    : 2_000;
+  elements.saverAllowance.max = String(saverAllowanceMaximum);
+  elements.saverAllowance.value = String(scenario.saverAllowance);
+  elements.privateTaxYear.textContent = `Rentenbeginn ${retirementStartYear}`;
+  elements.pensionTaxShare.textContent = `${pensionTaxableShare.toLocaleString("de-DE")} % Rentenanteil steuerpflichtig`;
+  elements.personalTaxLabel.textContent = scenario.depotType === "private"
+    ? "Günstigerprüfung anwenden"
+    : "Persönlicher Steuersatz";
+  elements.withdrawalExplanation.textContent = scenario.depotType === "private"
+    ? "Die Nettoentnahme bleibt das Ziel. Steuern erhöhen den nötigen Bruttoverkauf und beschleunigen den Kapitalverbrauch."
+    : "Die Entnahme reduziert das Depot in gleicher Höhe.";
   elements.withdrawalUnit.textContent = scenario.withdrawalType === "percent" ? "%" : "€";
 }
 
