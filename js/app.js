@@ -263,6 +263,8 @@ function renderStatus(plans) {
 }
 
 function renderWizard() {
+  elements.viewport.scrollTop = 0;
+  elements.viewport.scrollLeft = 0;
   elements.track.style.transform = `translateX(-${state.step * 100}%)`;
   const steps = [...elements.track.querySelectorAll(".wizard-step")];
   steps.forEach((step, index) => {
