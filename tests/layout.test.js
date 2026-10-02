@@ -28,3 +28,9 @@ test("die Nettoentnahme lässt sich in Ein-Euro-Schritten einstellen", async () 
 
   assert.match(withdrawalInput, /step="1"/);
 });
+
+test("die zusätzliche Plan-Auswahl wird nicht angezeigt", async () => {
+  const html = await readFile(indexUrl, "utf8");
+
+  assert.doesNotMatch(html, /id="product-tabs"/);
+});

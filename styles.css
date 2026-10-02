@@ -445,9 +445,8 @@ input[type="text"] { text-align: left; }
 select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--accent) 50%), linear-gradient(135deg, var(--accent) 50%, transparent 50%); background-position: calc(100% - 17px) 20px, calc(100% - 11px) 20px; background-repeat: no-repeat; background-size: 6px 6px; padding-right: 30px; }
 input:focus, select:focus { border-color: #aeb8c6; background: #fff; }
 
-.product-tabs, .detail-tabs, .segmented { display: flex; padding: 4px; border-radius: 10px; background: var(--soft); }
-.product-tabs { margin: 18px 0 4px; }
-.product-tab, .detail-tabs button {
+.detail-tabs, .segmented { display: flex; padding: 4px; border-radius: 10px; background: var(--soft); }
+.detail-tabs button {
   flex: 1;
   min-height: 35px;
   border: 0;
@@ -458,7 +457,7 @@ input:focus, select:focus { border-color: #aeb8c6; background: #fff; }
   font-size: 11px;
   font-weight: 800;
 }
-.product-tab[aria-pressed="true"], .detail-tabs button[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgb(15 23 42 / 10%); }
+.detail-tabs button[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgb(15 23 42 / 10%); }
 .inline-actions { display: flex; justify-content: space-between; gap: 10px; padding-top: 18px; }
 .text-button { min-height: 38px; border: 1px solid var(--line); border-radius: 9px; background: #fff; padding: 0 12px; cursor: pointer; font-size: 11px; font-weight: 750; }
 .text-button.primary { border-color: var(--ink); background: var(--ink); color: #fff; }

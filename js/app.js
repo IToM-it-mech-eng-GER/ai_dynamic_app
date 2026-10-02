@@ -65,7 +65,6 @@ const elements = {
   privateTaxYear: getElement("private-tax-year"),
   productCards: getElement("product-cards"),
   productCount: getElement("product-count"),
-  productTabs: getElement("product-tabs"),
   removeProduct: getElement("remove-product"),
   resetButton: getElement("reset-button"),
   saverAllowance: getElement("saver-allowance"),
@@ -101,7 +100,6 @@ elements.settingsForm.addEventListener("submit", (event) => event.preventDefault
 elements.settingsForm.addEventListener("input", handleSettingsInput);
 elements.settingsForm.addEventListener("change", () => render());
 elements.productCards.addEventListener("click", handleProductChoice);
-elements.productTabs.addEventListener("click", handleProductChoice);
 elements.addProduct.addEventListener("click", handleAddProduct);
 elements.removeProduct.addEventListener("click", handleRemoveProduct);
 elements.previousStep.addEventListener("click", () => changeStep(-1, true));
@@ -145,7 +143,6 @@ function render({ syncInputs = true } = {}) {
   }));
 
   renderProductCards(plans);
-  renderProductTabs();
   renderComparison(plans);
   renderChart(elements.chart, plans);
   renderStatus(plans);
@@ -203,19 +200,6 @@ function createCardMeta(result) {
   ending.append("Lebensende ", createElement("strong", "", money.format(result.endingBalance)));
   meta.append(contributions, ending);
   return meta;
-}
-
-function renderProductTabs() {
-  const tabs = state.products.map((product, index) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "product-tab";
-    button.dataset.productId = product.id;
-    button.setAttribute("aria-pressed", String(product.id === state.selectedId));
-    button.textContent = `Plan ${index + 1}`;
-    return button;
-  });
-  elements.productTabs.replaceChildren(...tabs);
 }
 
 function renderComparison(plans) {
