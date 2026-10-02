@@ -492,6 +492,36 @@ input:focus, select:focus { border-color: #aeb8c6; background: #fff; }
 .switch-row input:focus-visible + .switch { outline: 3px solid rgb(255 107 22 / 28%); outline-offset: 2px; }
 .dependent-fields[hidden] { display: none; }
 
+.strategy-note { margin-top: 18px; }
+.fund-switch-editor { border-bottom: 1px solid var(--line); padding-bottom: 18px; }
+.fund-switch-list { display: grid; }
+.fund-switch-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 52%);
+  align-items: center;
+  gap: 14px;
+  min-height: 72px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 650;
+}
+.fund-switch-control { display: grid; grid-template-columns: minmax(0, 1fr) 40px; align-items: center; gap: 8px; }
+.fund-switch-remove, .fund-switch-add {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 800;
+}
+.fund-switch-remove { width: 40px; height: 40px; border-radius: 8px; font-size: 21px; line-height: 1; }
+.fund-switch-add { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; margin-top: 14px; border-radius: 9px; padding: 0 13px; font-size: 11px; }
+.fund-switch-add span { font-size: 18px; font-weight: 500; }
+.fund-switch-remove:hover, .fund-switch-add:hover:not(:disabled) { background: var(--soft); }
+.fund-switch-remove:focus-visible, .fund-switch-add:focus-visible { outline: 3px solid rgb(255 107 22 / 28%); outline-offset: 2px; }
+.fund-switch-add:disabled { opacity: .35; cursor: not-allowed; }
+.fund-switch-empty { margin: 0; padding: 20px 0 4px; color: var(--muted); font-size: 12px; }
+
 .segment-field { margin: 16px 0 0; padding: 0; border: 0; }
 .segment-field legend { margin-bottom: 7px; color: var(--muted); font-size: 11px; font-weight: 750; }
 .depot-type-field { margin: 20px 0 4px; }
@@ -628,6 +658,7 @@ footer { padding: 4px 18px 22px; color: var(--muted); font-size: 10px; text-alig
   .wizard-step { padding: 20px 18px 26px; }
   .step-heading h3 { font-size: 20px; }
   .row-field { grid-template-columns: minmax(0, 1fr) minmax(130px, 52%); gap: 10px; font-size: 12px; }
+  .fund-switch-row { grid-template-columns: minmax(0, 1fr) minmax(160px, 56%); gap: 10px; font-size: 12px; }
   .card-meta { flex-direction: column; gap: 2px; }
 }
 

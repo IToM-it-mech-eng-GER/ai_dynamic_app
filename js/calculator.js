@@ -54,9 +54,11 @@ export function calculatePlan(product, horizonOrScenario) {
   const context = createCalculationContext(horizonOrScenario);
   const years = context.retirementAge - context.currentAge;
   const savingMonths = years * 12;
-  const rebalancingCost = context.rebalancingEnabled ? context.rebalancingReduction : 0;
+  const rebalancingBonus = context.depotType === "pension" && context.rebalancingEnabled
+    ? context.rebalancingBonus
+    : 0;
   const netAnnualReturn = clamp(
-    normalizedProduct.annualReturn - normalizedProduct.annualFee - rebalancingCost,
+    normalizedProduct.annualReturn - normalizedProduct.annualFee + rebalancingBonus,
     -99,
     50,
   );
@@ -80,9 +82,15 @@ export function calculatePlan(product, horizonOrScenario) {
   let withdrawalTaxes = 0;
   let realizedGains = 0;
   let fundSwitchLoss = 0;
+  let fundSwitchTaxes = 0;
+  let fundSwitchCount = 0;
+  let annualTaxState = createAnnualTaxState();
   const privateLots = context.depotType === "private"
     ? createInitialLots(normalizedProduct.initialCapital)
     : [];
+  const fundSwitchMonths = new Set(
+    context.fundSwitchAges.map((age) => (age - context.currentAge) * 12),
+  );
 
   for (let month = 1; month <= savingMonths; month += 1) {
     const netContribution = normalizedProduct.monthlyContribution
@@ -104,16 +112,39 @@ export function calculatePlan(product, horizonOrScenario) {
     );
     contributed += normalizedProduct.monthlyContribution;
 
-    const age = context.currentAge + month / 12;
-    if (
-      context.fundSwitchEnabled
-      && Math.abs(age - context.fundSwitchAge) < 0.001
-      && context.fundSwitchPercentage > 0
-    ) {
-      const switchAmount = balance * context.fundSwitchPercentage / 100;
-      fundSwitchLoss = switchAmount * normalizedProduct.transactionFee / 100;
-      balance = Math.max(0, balance - fundSwitchLoss);
-      if (context.depotType === "private") reconcileLotValues(privateLots, balance);
+    if (context.fundSwitchEnabled && fundSwitchMonths.has(month)) {
+      const switchAmount = balance;
+      const switchFee = switchAmount * normalizedProduct.transactionFee / 100;
+      let switchTax = 0;
+
+      if (context.depotType === "private") {
+        const sale = calculateFifoSale(privateLots, switchAmount);
+        const taxableGain = sale.realizedGain * (1 - context.partialExemptionRate / 100);
+        const taxYear = TAX_RULE_YEAR + Math.floor(month / 12);
+        annualTaxState = advanceAnnualTaxState(annualTaxState, taxYear);
+        const taxableCapitalIncome = annualTaxState.taxableCapitalIncome + taxableGain;
+        const taxContext = month < savingMonths
+          ? { ...context, personalTaxEnabled: false }
+          : context;
+        const assessedTax = calculateAnnualPrivateTax(taxableCapitalIncome, taxContext);
+        switchTax = assessedTax - annualTaxState.assessedTax;
+        annualTaxState = {
+          year: taxYear,
+          taxableCapitalIncome,
+          assessedTax,
+        };
+        realizedGains += sale.realizedGain;
+      }
+
+      balance = Math.max(0, switchAmount - switchFee - switchTax);
+      fundSwitchLoss += switchFee;
+      fundSwitchTaxes += switchTax;
+      fundSwitchCount += 1;
+
+      if (context.depotType === "private") {
+        privateLots.splice(0, privateLots.length);
+        addLot(privateLots, balance, balance + switchFee);
+      }
     }
 
     if (month % 12 === 0) {
@@ -129,12 +160,11 @@ export function calculatePlan(product, horizonOrScenario) {
 
   const retirementBalance = balance;
   const retirementGrossBalance = grossBalance;
-  let annualTaxState = createAnnualTaxState();
 
   if (context.withdrawalEnabled) {
     const withdrawalMonths = (context.lifeExpectancy - context.retirementAge) * 12;
     const retirementNetReturn = clamp(
-      context.postRetirementReturn - normalizedProduct.annualFee,
+      context.postRetirementReturn - normalizedProduct.annualFee + rebalancingBonus,
       -99,
       50,
     );
@@ -160,7 +190,7 @@ export function calculatePlan(product, horizonOrScenario) {
 
       if (context.depotType === "private" && desiredWithdrawal > 0) {
         const taxYear = TAX_RULE_YEAR + years + Math.floor((month - 1) / 12);
-        if (annualTaxState.year !== taxYear) annualTaxState = createAnnualTaxState(taxYear);
+        annualTaxState = advanceAnnualTaxState(annualTaxState, taxYear);
         const withdrawal = calculatePrivateNetWithdrawal(
           privateLots,
           desiredWithdrawal,
@@ -193,11 +223,11 @@ export function calculatePlan(product, horizonOrScenario) {
     }
   }
 
-  const totalCosts = Math.max(0, grossBalance - balance);
+  const totalCosts = Math.max(0, grossBalance - balance - fundSwitchTaxes);
   const totalGain = balance + grossWithdrawals - contributed;
   const taxableGain = Math.max(0, totalGain);
   const estimatedTaxes = context.depotType === "private"
-    ? withdrawalTaxes
+    ? withdrawalTaxes + fundSwitchTaxes
     : calculateEstimatedTaxes(taxableGain, context);
 
   return {
@@ -205,7 +235,7 @@ export function calculatePlan(product, horizonOrScenario) {
     years,
     endAge: context.withdrawalEnabled ? context.lifeExpectancy : context.retirementAge,
     netAnnualReturn,
-    rebalancingCost,
+    rebalancingBonus,
     endingBalance: balance,
     netEndingBalance: context.depotType === "private"
       ? balance
@@ -221,6 +251,8 @@ export function calculatePlan(product, horizonOrScenario) {
     realizedGains,
     totalCosts,
     fundSwitchLoss,
+    fundSwitchTaxes,
+    fundSwitchCount,
     estimatedTaxes,
     series,
   };
@@ -330,7 +362,7 @@ function calculatePrivateNetWithdrawal(lots, desiredNetWithdrawal, context, taxS
     const taxableGain = sale.realizedGain * (1 - context.partialExemptionRate / 100);
     const taxableCapitalIncome = taxState.taxableCapitalIncome + taxableGain;
     const assessedTax = calculateAnnualPrivateTax(taxableCapitalIncome, context);
-    const tax = Math.max(0, assessedTax - taxState.assessedTax);
+    const tax = assessedTax - taxState.assessedTax;
     return {
       ...sale,
       taxableCapitalIncome,
@@ -458,6 +490,15 @@ function createAnnualTaxState(year = 0) {
   return {
     year,
     taxableCapitalIncome: 0,
+    assessedTax: 0,
+  };
+}
+
+function advanceAnnualTaxState(taxState, year) {
+  if (taxState.year === year) return taxState;
+  return {
+    year,
+    taxableCapitalIncome: Math.min(0, taxState.taxableCapitalIncome),
     assessedTax: 0,
   };
 }

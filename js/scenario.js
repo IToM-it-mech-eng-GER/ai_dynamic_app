@@ -14,10 +14,9 @@ const DEFAULT_SCENARIO = Object.freeze({
   inflationEnabled: true,
   inflationRate: 2,
   rebalancingEnabled: true,
-  rebalancingReduction: 0.5,
+  rebalancingBonus: 0.5,
   fundSwitchEnabled: true,
-  fundSwitchAge: 62,
-  fundSwitchPercentage: 100,
+  fundSwitchAges: Object.freeze([62]),
   personalTaxEnabled: true,
   marginalTaxRate: 35,
   socialContributionsEnabled: true,
@@ -28,7 +27,10 @@ const DEFAULT_SCENARIO = Object.freeze({
 });
 
 export function createScenario() {
-  return { ...DEFAULT_SCENARIO };
+  return {
+    ...DEFAULT_SCENARIO,
+    fundSwitchAges: [...DEFAULT_SCENARIO.fundSwitchAges],
+  };
 }
 
 export function normalizeScenario(values = {}) {
@@ -58,6 +60,21 @@ export function normalizeScenario(values = {}) {
   const saverAllowanceLimit = depotType === "private"
     ? (taxAssessment === "joint" ? 2_000 : 1_000)
     : 10_000;
+  const legacyFundSwitchAge = values.fundSwitchAge === undefined
+    ? DEFAULT_SCENARIO.fundSwitchAges
+    : [values.fundSwitchAge];
+  const rawFundSwitchAges = Array.isArray(values.fundSwitchAges)
+    ? values.fundSwitchAges
+    : legacyFundSwitchAge;
+  const fundSwitchAges = [...new Set(rawFundSwitchAges.map((age) => normalizeInteger(
+    age,
+    DEFAULT_SCENARIO.fundSwitchAges[0],
+    currentAge + 1,
+    retirementAge,
+  )))].sort((left, right) => left - right);
+  const legacyRebalancingBonus = values.rebalancingBonus
+    ?? values.rebalancingReduction
+    ?? DEFAULT_SCENARIO.rebalancingBonus;
 
   return {
     currentAge,
@@ -84,11 +101,11 @@ export function normalizeScenario(values = {}) {
     postRetirementReturn: normalizeNumber(values.postRetirementReturn, DEFAULT_SCENARIO.postRetirementReturn, -50, 30),
     inflationEnabled: normalizeBoolean(values.inflationEnabled, DEFAULT_SCENARIO.inflationEnabled),
     inflationRate: normalizeNumber(values.inflationRate, DEFAULT_SCENARIO.inflationRate, 0, 15),
-    rebalancingEnabled: normalizeBoolean(values.rebalancingEnabled, DEFAULT_SCENARIO.rebalancingEnabled),
-    rebalancingReduction: normalizeNumber(values.rebalancingReduction, DEFAULT_SCENARIO.rebalancingReduction, 0, 10),
+    rebalancingEnabled: depotType === "pension"
+      && normalizeBoolean(values.rebalancingEnabled, DEFAULT_SCENARIO.rebalancingEnabled),
+    rebalancingBonus: normalizeNumber(legacyRebalancingBonus, DEFAULT_SCENARIO.rebalancingBonus, 0, 10),
     fundSwitchEnabled: normalizeBoolean(values.fundSwitchEnabled, DEFAULT_SCENARIO.fundSwitchEnabled),
-    fundSwitchAge: normalizeInteger(values.fundSwitchAge, DEFAULT_SCENARIO.fundSwitchAge, currentAge, retirementAge),
-    fundSwitchPercentage: normalizeNumber(values.fundSwitchPercentage, DEFAULT_SCENARIO.fundSwitchPercentage, 0, 100),
+    fundSwitchAges,
     personalTaxEnabled: normalizeBoolean(values.personalTaxEnabled, DEFAULT_SCENARIO.personalTaxEnabled),
     marginalTaxRate: normalizeNumber(values.marginalTaxRate, DEFAULT_SCENARIO.marginalTaxRate, 0, 60),
     socialContributionsEnabled: normalizeBoolean(values.socialContributionsEnabled, DEFAULT_SCENARIO.socialContributionsEnabled),

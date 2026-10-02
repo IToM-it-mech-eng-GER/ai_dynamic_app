@@ -51,6 +51,27 @@ test("liest beschädigte oder fremde Profildaten sicher ein", () => {
   assert.deepEqual(malformed, []);
 });
 
+test("übernimmt Fondswechsel und Rebalancing aus älteren Profilen", () => {
+  const setup = createSetup();
+  delete setup.products[0].scenario.fundSwitchAges;
+  delete setup.products[0].scenario.rebalancingBonus;
+  setup.products[0].scenario.fundSwitchAge = 58;
+  setup.products[0].scenario.fundSwitchPercentage = 75;
+  setup.products[0].scenario.rebalancingReduction = 0.7;
+  const legacyProfile = [{
+    id: "profile-alt",
+    name: "Altbestand",
+    savedAt: "2026-09-30",
+    setup,
+  }];
+
+  const [profile] = readProfiles(JSON.stringify(legacyProfile));
+
+  assert.deepEqual(profile.setup.products[0].scenario.fundSwitchAges, [58]);
+  assert.equal(profile.setup.products[0].scenario.rebalancingBonus, 0.7);
+  assert.equal("fundSwitchPercentage" in profile.setup.products[0].scenario, false);
+});
+
 test("entfernt nur das gewählte Profil", () => {
   const setup = createSetup();
   const first = upsertProfile([], "Eins", setup, { id: "profile-1", savedAt: "2026-09-30" });

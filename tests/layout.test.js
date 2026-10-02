@@ -52,3 +52,22 @@ test("das Diagramm schrumpft ohne horizontalen Scrollbereich", async () => {
   assert.match(chartRule, /min-width:\s*0\s*;/);
   assert.match(legendRule, /flex-wrap:\s*wrap\s*;/);
 });
+
+test("Fondswechsel werden vollständig und über Plus und Minus verwaltet", async () => {
+  const html = await readFile(indexUrl, "utf8");
+
+  assert.doesNotMatch(html, /Verkaufter Anteil/);
+  assert.match(html, /id="fund-switch-list"/);
+  assert.match(html, /id="add-fund-switch"/);
+
+  const app = await readFile(appUrl, "utf8");
+  assert.match(app, /fund-switch-remove/);
+  assert.match(app, /addEventListener\("change", handleFundSwitchChange\)/);
+});
+
+test("Eingaben setzen die Scrollposition innerhalb eines Schritts nicht zurück", async () => {
+  const app = await readFile(appUrl, "utf8");
+
+  assert.match(app, /renderedWizardStep !== state\.step/);
+  assert.doesNotMatch(app, /function renderWizard\(\) \{\s*elements\.viewport\.scrollTop = 0/);
+});

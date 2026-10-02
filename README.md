@@ -19,7 +19,7 @@ npm test
 npm run check
 ```
 
-Die Ergebnisse sind Modellrechnungen und keine Anlage- oder Steuerberatung. Individuelle Sonderausgaben, Kirchensteuer, Kranken- und Pflegeversicherung, Verlustverrechnung, Vorabpauschalen und Ausschüttungen sind nicht enthalten.
+Die Ergebnisse sind Modellrechnungen und keine Anlage- oder Steuerberatung. Individuelle Sonderausgaben, Kirchensteuer, Kranken- und Pflegeversicherung, Vorabpauschalen und Ausschüttungen sind nicht enthalten. Vollständige Fondswechsel im Privatdepot werden als steuerpflichtige Verkäufe mit Verlustfortführung im Kapitalertragsteuertopf modelliert. Vor Rentenbeginn wird mangels Angaben zum Erwerbseinkommen keine Günstigerprüfung angewendet.
 
 ## Rechtsgrundlagen des Privatdepots
 

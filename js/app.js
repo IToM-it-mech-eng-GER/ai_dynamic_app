@@ -41,6 +41,7 @@ const money = new Intl.NumberFormat("de-DE", {
 
 const elements = {
   addProduct: getElement("add-product"),
+  addFundSwitch: getElement("add-fund-switch"),
   chart: getElement("growth-chart"),
   chartDescription: getElement("chart-description"),
   chartRange: getElement("chart-range"),
@@ -48,6 +49,7 @@ const elements = {
   costPanel: getElement("cost-panel"),
   costTab: getElement("cost-tab"),
   dashboard: getElement("dashboard"),
+  fundSwitchList: getElement("fund-switch-list"),
   nextStep: getElement("next-step"),
   overviewPanel: getElement("overview-panel"),
   overviewTab: getElement("overview-tab"),
@@ -95,10 +97,14 @@ const summaryElements = {
 
 let state = createInitialState();
 let swipeStart = null;
+let renderedWizardStep = null;
 
 elements.settingsForm.addEventListener("submit", (event) => event.preventDefault());
 elements.settingsForm.addEventListener("input", handleSettingsInput);
 elements.settingsForm.addEventListener("change", () => render());
+elements.addFundSwitch.addEventListener("click", handleAddFundSwitch);
+elements.fundSwitchList.addEventListener("click", handleFundSwitchAction);
+elements.fundSwitchList.addEventListener("change", handleFundSwitchChange);
 elements.productCards.addEventListener("click", handleProductChoice);
 elements.addProduct.addEventListener("click", handleAddProduct);
 elements.removeProduct.addEventListener("click", handleRemoveProduct);
@@ -117,6 +123,7 @@ elements.viewport.addEventListener("pointerup", handlePointerUp);
 elements.viewport.addEventListener("pointercancel", () => { swipeStart = null; });
 elements.resetButton.addEventListener("click", () => {
   state = createInitialState();
+  renderedWizardStep = null;
   render();
 });
 
@@ -135,7 +142,7 @@ function createInitialState() {
   };
 }
 
-function render({ syncInputs = true } = {}) {
+function render({ syncInputs = true, syncFundSwitches = true } = {}) {
   ensureSelection();
   const plans = state.products.map((product) => ({
     product,
@@ -147,12 +154,54 @@ function render({ syncInputs = true } = {}) {
   renderChart(elements.chart, plans);
   renderStatus(plans);
   renderWizard();
+  if (syncFundSwitches) renderFundSwitches();
   renderDependencies();
   renderDetailTabs();
   renderPanelState();
   renderProfiles();
 
   if (syncInputs) syncForms(getSelectedProduct());
+}
+
+function renderFundSwitches() {
+  const scenario = getSelectedScenario();
+  const rows = scenario.fundSwitchAges.map((age, index) => {
+    const row = createElement("div", "fund-switch-row");
+    const label = document.createElement("label");
+    const inputId = `fund-switch-age-${index}`;
+    label.htmlFor = inputId;
+    label.textContent = `Wechsel ${index + 1} im Alter von`;
+
+    const control = createElement("span", "fund-switch-control");
+    const inputGroup = createElement("span", "input-with-unit");
+    const input = document.createElement("input");
+    input.id = inputId;
+    input.type = "number";
+    input.min = String(scenario.currentAge + 1);
+    input.max = String(scenario.retirementAge);
+    input.step = "1";
+    input.inputMode = "numeric";
+    input.value = String(age);
+    input.dataset.fundSwitchIndex = String(index);
+    const unit = document.createElement("i");
+    unit.textContent = "J.";
+    inputGroup.append(input, unit);
+
+    const removeButton = createElement("button", "fund-switch-remove", "−");
+    removeButton.type = "button";
+    removeButton.dataset.fundSwitchAction = "remove";
+    removeButton.dataset.fundSwitchIndex = String(index);
+    removeButton.setAttribute("aria-label", `Fondswechsel ${index + 1} entfernen`);
+    control.append(inputGroup, removeButton);
+    row.append(label, control);
+    return row;
+  });
+
+  if (rows.length === 0) {
+    rows.push(createElement("p", "fund-switch-empty", "Noch kein Fondswechsel hinzugefügt."));
+  }
+  elements.fundSwitchList.replaceChildren(...rows);
+  elements.addFundSwitch.disabled = findNextFundSwitchAge(scenario) === null;
 }
 
 function renderProductCards(plans) {
@@ -248,8 +297,11 @@ function renderStatus(plans) {
 }
 
 function renderWizard() {
-  elements.viewport.scrollTop = 0;
-  elements.viewport.scrollLeft = 0;
+  if (renderedWizardStep !== state.step) {
+    elements.viewport.scrollTop = 0;
+    elements.viewport.scrollLeft = 0;
+    renderedWizardStep = state.step;
+  }
   elements.track.style.transform = `translateX(-${state.step * 100}%)`;
   const steps = [...elements.track.querySelectorAll(".wizard-step")];
   steps.forEach((step, index) => {
@@ -448,6 +500,19 @@ function handleSettingsInput(event) {
   if (!(field instanceof HTMLInputElement || field instanceof HTMLSelectElement)) return;
   const productKey = field.dataset.productField;
   const scenarioKey = field.dataset.scenarioField;
+  const fundSwitchIndex = field.dataset.fundSwitchIndex;
+
+  if (fundSwitchIndex !== undefined) {
+    if (!Number.isFinite(field.valueAsNumber)) return;
+    const selectedProduct = getSelectedProduct();
+    const fundSwitchAges = [...selectedProduct.scenario.fundSwitchAges];
+    fundSwitchAges[Number(fundSwitchIndex)] = field.valueAsNumber;
+    state.products = updateProduct(state.products, state.selectedId, {
+      scenario: { ...selectedProduct.scenario, fundSwitchAges },
+    });
+    render({ syncInputs: false, syncFundSwitches: false });
+    return;
+  }
 
   if (productKey) {
     const value = productKey === "name" ? field.value : field.valueAsNumber;
@@ -460,6 +525,61 @@ function handleSettingsInput(event) {
     state.products = updateProduct(state.products, state.selectedId, { scenario });
   }
   render({ syncInputs: false });
+}
+
+function handleFundSwitchChange(event) {
+  const field = event.target;
+  if (!(field instanceof HTMLInputElement)) return;
+  const fundSwitchIndex = field.dataset.fundSwitchIndex;
+  if (fundSwitchIndex === undefined) return;
+  const selectedProduct = getSelectedProduct();
+  const fundSwitchAges = [...selectedProduct.scenario.fundSwitchAges];
+  fundSwitchAges[Number(fundSwitchIndex)] = field.valueAsNumber;
+  const scenario = normalizeScenario({ ...selectedProduct.scenario, fundSwitchAges });
+  state.products = updateProduct(state.products, state.selectedId, { scenario });
+  render();
+}
+
+function handleAddFundSwitch() {
+  const selectedProduct = getSelectedProduct();
+  const nextAge = findNextFundSwitchAge(selectedProduct.scenario);
+  if (nextAge === null) return;
+  const scenario = normalizeScenario({
+    ...selectedProduct.scenario,
+    fundSwitchAges: [...selectedProduct.scenario.fundSwitchAges, nextAge],
+  });
+  state.products = updateProduct(state.products, state.selectedId, { scenario });
+  render();
+  elements.fundSwitchList.querySelector(".fund-switch-row:last-child input")?.focus();
+}
+
+function handleFundSwitchAction(event) {
+  const button = event.target.closest("button[data-fund-switch-action]");
+  if (!button) return;
+  const selectedProduct = getSelectedProduct();
+  const removeIndex = Number(button.dataset.fundSwitchIndex);
+  const fundSwitchAges = selectedProduct.scenario.fundSwitchAges.filter(
+    (_, index) => index !== removeIndex,
+  );
+  const scenario = normalizeScenario({ ...selectedProduct.scenario, fundSwitchAges });
+  state.products = updateProduct(state.products, state.selectedId, { scenario });
+  render();
+  elements.addFundSwitch.focus();
+}
+
+function findNextFundSwitchAge(scenario) {
+  const usedAges = new Set(scenario.fundSwitchAges);
+  const preferredStart = Math.min(
+    scenario.retirementAge,
+    (scenario.fundSwitchAges.at(-1) ?? scenario.currentAge) + 1,
+  );
+  for (let age = preferredStart; age <= scenario.retirementAge; age += 1) {
+    if (!usedAges.has(age)) return age;
+  }
+  for (let age = scenario.currentAge + 1; age < preferredStart; age += 1) {
+    if (!usedAges.has(age)) return age;
+  }
+  return null;
 }
 
 function readScenarioField(field, key) {

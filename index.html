@@ -17,7 +17,7 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23070f20'/%3E%3Cpath d='M15 43 27 31l8 7 14-17' fill='none' stroke='%23ff6b16' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="./styles.css?v=chart-responsive1" />
+    <link rel="stylesheet" href="./styles.css?v=fund-switches1" />
   </head>
   <body>
     <a class="skip-link" href="#main-content">Direkt zum Inhalt</a>
@@ -211,21 +211,24 @@
 
                   <section class="wizard-step" data-step="3" aria-labelledby="step-strategy-title">
                     <header class="step-heading"><span class="step-kicker">Varianz</span><h3 id="step-strategy-title" tabindex="-1">Strategie &amp; Fondswechsel</h3><p>Zusätzliche Annahmen verändern die effektive Wertentwicklung.</p></header>
-                    <label class="switch-row" for="rebalancing-enabled"><strong>Rebalancing</strong><input id="rebalancing-enabled" data-scenario-field="rebalancingEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
-                    <div class="field-list dependent-fields" data-dependent="rebalancingEnabled"><label class="row-field" for="rebalancing-reduction"><span>Renditeminderung</span><span class="input-with-unit"><input id="rebalancing-reduction" data-scenario-field="rebalancingReduction" type="number" min="0" max="10" step="0.1" inputmode="decimal" /><i>%</i></span></label></div>
-                    <label class="switch-row separated" for="fund-switch-enabled"><strong>Fondswechsel</strong><input id="fund-switch-enabled" data-scenario-field="fundSwitchEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
-                    <div class="field-list dependent-fields" data-dependent="fundSwitchEnabled">
-                      <label class="row-field" for="fund-switch-age"><span>Wechsel im Alter von</span><span class="input-with-unit"><input id="fund-switch-age" data-scenario-field="fundSwitchAge" type="number" min="18" max="100" step="1" inputmode="numeric" /><i>J.</i></span></label>
-                      <label class="row-field" for="fund-switch-percentage"><span>Verkaufter Anteil</span><span class="input-with-unit"><input id="fund-switch-percentage" data-scenario-field="fundSwitchPercentage" type="number" min="0" max="100" step="1" inputmode="decimal" /><i>%</i></span></label>
+                    <div data-depot-mode="pension">
+                      <label class="switch-row" for="rebalancing-enabled"><strong>Rebalancing</strong><input id="rebalancing-enabled" data-scenario-field="rebalancingEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
+                      <div class="field-list dependent-fields" data-dependent="rebalancingEnabled"><label class="row-field" for="rebalancing-bonus"><span>Renditesteigerung</span><span class="input-with-unit"><input id="rebalancing-bonus" data-scenario-field="rebalancingBonus" type="number" min="0" max="10" step="0.1" inputmode="decimal" /><i>%</i></span></label></div>
                     </div>
-                    <details><summary>Steuerliche Auswirkung</summary><p>Ein Fondswechsel realisiert im Modell anteilige Transaktionskosten. Eine mögliche Steuer auf den Fondswechsel selbst ist noch nicht enthalten.</p></details>
+                    <p class="calculation-hint strategy-note" data-depot-mode="private" hidden>Rebalancing ist ausschließlich im Renten-Depot verfügbar.</p>
+                    <label class="switch-row separated" for="fund-switch-enabled"><strong>Fondswechsel</strong><input id="fund-switch-enabled" data-scenario-field="fundSwitchEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
+                    <div class="dependent-fields fund-switch-editor" data-dependent="fundSwitchEnabled">
+                      <div class="fund-switch-list" id="fund-switch-list"></div>
+                      <button class="fund-switch-add" id="add-fund-switch" type="button"><span aria-hidden="true">+</span> Fondswechsel hinzufügen</button>
+                    </div>
+                    <details><summary>Steuerliche Auswirkung</summary><p data-depot-mode="private" hidden>Jeder Fondswechsel verkauft den ETF vollständig. Gewinne werden nach FIFO, Teilfreistellung, Sparer-Pauschbetrag und den gewählten Steuerregeln besteuert; der verbleibende Betrag wird neu angelegt.</p><p data-depot-mode="pension">Im Renten-Depot bleibt der Fondswechsel steuerfrei. Eingestellte Transaktionskosten werden weiterhin berücksichtigt.</p></details>
                   </section>
 
                   <section class="wizard-step" data-step="4" aria-labelledby="step-tax-title">
                     <header class="step-heading"><span class="step-kicker">Szenario</span><h3 id="step-tax-title" tabindex="-1">Politik &amp; Steuern</h3><p>Vereinfachte Annahmen für den Nettovergleich.</p></header>
                     <label class="switch-row" for="personal-tax-enabled"><strong id="personal-tax-label">Persönlicher Steuersatz</strong><input id="personal-tax-enabled" data-scenario-field="personalTaxEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
                     <div class="field-list dependent-fields" data-dependent="personalTaxEnabled" data-depot-mode="pension"><label class="row-field" for="marginal-tax-rate"><span>Grenzsteuersatz</span><span class="input-with-unit"><input id="marginal-tax-rate" data-scenario-field="marginalTaxRate" type="number" min="0" max="60" step="0.1" inputmode="decimal" /><i>%</i></span></label></div>
-                    <p class="calculation-hint" data-depot-mode="private" hidden>Verglichen werden Abgeltungsteuer und der Tarif 2026 einschließlich der eingegebenen gesetzlichen Rente.</p>
+                    <p class="calculation-hint" data-depot-mode="private" hidden>Vor Rentenbeginn gilt mangels Angaben zum Erwerbseinkommen die Abgeltungsteuer. Ab Rentenbeginn wird zusätzlich der Tarif 2026 einschließlich der eingegebenen gesetzlichen Rente verglichen.</p>
                     <label class="switch-row" for="social-contributions-enabled"><strong>Szenario: Sozialabgaben (3 %)</strong><input id="social-contributions-enabled" data-scenario-field="socialContributionsEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
                     <p class="impact-note">Geschätzte Modellbelastung: <strong id="political-impact">0 €</strong></p>
                     <details open><summary>Steuer-Einstellungen</summary><div class="field-list details-fields">
@@ -277,9 +280,9 @@
     </main>
 
     <footer>
-      <p>Steuermodell nach deutschem Recht 2026. Ohne Kirchensteuer, individuelle Sonderausgaben, Kranken- und Pflegeversicherung, Verlustverrechnung sowie Vorabpauschalen und Ausschüttungen. Keine Anlage- oder Steuerberatung.</p>
+      <p>Steuermodell nach deutschem Recht 2026. Ohne Kirchensteuer, individuelle Sonderausgaben, Kranken- und Pflegeversicherung sowie Vorabpauschalen und Ausschüttungen. Keine Anlage- oder Steuerberatung.</p>
     </footer>
 
-    <script type="module" src="./js/app.js?v=initial-capital1"></script>
+    <script type="module" src="./js/app.js?v=fund-switches1"></script>
   </body>
 </html>

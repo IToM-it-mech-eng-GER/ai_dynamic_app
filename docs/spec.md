@@ -48,7 +48,10 @@ Die Rechenlogik wird vor der Umsetzung mit Node-Tests beschrieben. Geprüft werd
 - Beim Wechsel des Produkts werden alle sechs zugehörigen Seiten mit den gespeicherten Produktwerten geladen.
 - Persönliches Alter, Rentenalter und Lebenserwartung bestimmen den Zeitraum.
 - Eine aktivierbare Entnahmephase stoppt die Sparrate ab Rentenbeginn und berücksichtigt Entnahme, Rendite und optionale Inflation.
-- Rebalancing, Fondswechsel, politische Szenarien und Steuereinstellungen lassen sich aktivieren und einstellen.
+- Rebalancing lässt sich im Renten-Depot als Renditesteigerung aktivieren.
+- Pro Produkt lassen sich mehrere vollständige Fondswechsel festlegen. Im Privatdepot werden dabei realisierte Gewinne besteuert.
+- Fondswechsel vor Rentenbeginn werden mangels Angaben zum Erwerbseinkommen mit der Abgeltungsteuer modelliert; ab Rentenbeginn greift zusätzlich die Günstigerprüfung.
+- Negative steuerpflichtige Fondsergebnisse werden im Modell innerhalb des Kapitalertragsteuertopfs fortgeführt.
 - Endvermögen, Einzahlungen, Wertzuwachs, Kosten und Modellsteuern werden nachvollziehbar verglichen.
 - Je Produkt kann zwischen Renten- und Privatdepot gewechselt werden.
 - Das Privatdepot rechnet Nettoentnahmen in FIFO-Bruttoverkäufe um und berücksichtigt Teilfreistellung, Sparer-Pauschbetrag, gesetzliche Rente, Rentenbesteuerungsanteil, Grundfreibetrag, Günstigerprüfung und Solidaritätszuschlag nach dem Rechtsstand 2026.
@@ -70,4 +73,4 @@ Die Rechenlogik wird vor der Umsetzung mit Node-Tests beschrieben. Geprüft werd
 
 ## Nicht enthalten
 
-Historische Kursdaten, Produktempfehlungen und rechtsverbindliche Steuerberatung. Im Privatdepot nicht enthalten sind Kirchensteuer, individuelle Sonderausgaben, Kranken- und Pflegeversicherung, Verlustverrechnung, Vorabpauschalen, Ausschüttungen und die Steuerwirkung eines Fondswechsels.
+Historische Kursdaten, Produktempfehlungen und rechtsverbindliche Steuerberatung. Im Privatdepot nicht enthalten sind Kirchensteuer, individuelle Sonderausgaben, Kranken- und Pflegeversicherung, Vorabpauschalen und Ausschüttungen.

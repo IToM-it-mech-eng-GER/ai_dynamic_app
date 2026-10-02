@@ -29,7 +29,7 @@ test("begrenzt Eingaben für Entnahme und politische Annahmen", () => {
     postRetirementReturn: 80,
     inflationRate: 30,
     marginalTaxRate: 120,
-    fundSwitchPercentage: 140,
+    fundSwitchAges: [62, 62, 150, 20],
   });
 
   assert.equal(scenario.withdrawalAmount, 0);
@@ -40,7 +40,34 @@ test("begrenzt Eingaben für Entnahme und politische Annahmen", () => {
   assert.equal(scenario.postRetirementReturn, 30);
   assert.equal(scenario.inflationRate, 15);
   assert.equal(scenario.marginalTaxRate, 60);
-  assert.equal(scenario.fundSwitchPercentage, 100);
+  assert.deepEqual(scenario.fundSwitchAges, [38, 62, 67]);
+});
+
+test("lässt Rebalancing ausschließlich im Rentendepot als Renditebonus zu", () => {
+  const pension = normalizeScenario({
+    depotType: "pension",
+    rebalancingEnabled: true,
+    rebalancingBonus: 0.8,
+  });
+  const privateDepot = normalizeScenario({
+    depotType: "private",
+    rebalancingEnabled: true,
+    rebalancingBonus: 0.8,
+  });
+
+  assert.equal(pension.rebalancingEnabled, true);
+  assert.equal(pension.rebalancingBonus, 0.8);
+  assert.equal(privateDepot.rebalancingEnabled, false);
+});
+
+test("übernimmt gespeicherte einzelne Fondswechsel in die neue Liste", () => {
+  const scenario = normalizeScenario({
+    currentAge: 40,
+    retirementAge: 67,
+    fundSwitchAge: 58,
+  });
+
+  assert.deepEqual(scenario.fundSwitchAges, [58]);
 });
 
 test("behält das bisherige Rentendepot als Standard", () => {

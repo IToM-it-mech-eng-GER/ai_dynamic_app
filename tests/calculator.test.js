@@ -206,7 +206,7 @@ test("deaktiviert die vereinfachte Steuerberechnung vollständig", () => {
   assert.equal(result.estimatedTaxes, 0);
 });
 
-test("behandelt Rebalancing als Renditeabzug und niemals als Bonus", () => {
+test("erhöht durch Rebalancing ausschließlich im Rentendepot die Rendite", () => {
   const product = {
     initialCapital: 10_000,
     monthlyContribution: 200,
@@ -219,7 +219,7 @@ test("behandelt Rebalancing als Renditeabzug und niemals als Bonus", () => {
     lifeExpectancy: 80,
     withdrawalEnabled: false,
     taxDisabled: true,
-    rebalancingReduction: 0.5,
+    rebalancingBonus: 0.5,
   };
   const withoutRebalancing = calculatePlan(product, {
     ...scenario,
@@ -227,11 +227,210 @@ test("behandelt Rebalancing als Renditeabzug und niemals als Bonus", () => {
   });
   const withRebalancing = calculatePlan(product, {
     ...scenario,
+    depotType: "pension",
+    rebalancingEnabled: true,
+  });
+  const privateDepot = calculatePlan(product, {
+    ...scenario,
+    depotType: "private",
     rebalancingEnabled: true,
   });
 
-  assert.equal(withRebalancing.netAnnualReturn, 5.3);
-  assert.ok(withRebalancing.endingBalance < withoutRebalancing.endingBalance);
+  assert.equal(withRebalancing.netAnnualReturn, 6.3);
+  assert.ok(withRebalancing.endingBalance > withoutRebalancing.endingBalance);
+  assert.equal(privateDepot.netAnnualReturn, withoutRebalancing.netAnnualReturn);
+});
+
+test("besteuert einen vollständigen Fondswechsel im Privatdepot", () => {
+  const result = calculatePlan(
+    {
+      initialCapital: 10_000,
+      monthlyContribution: 0,
+      annualReturn: 10,
+      annualFee: 0,
+      transactionFee: 0,
+    },
+    {
+      currentAge: 30,
+      retirementAge: 31,
+      lifeExpectancy: 80,
+      depotType: "private",
+      withdrawalEnabled: false,
+      rebalancingEnabled: false,
+      fundSwitchEnabled: true,
+      fundSwitchAges: [31],
+      personalTaxEnabled: false,
+      socialContributionsEnabled: false,
+      saverAllowance: 0,
+      partialExemptionRate: 0,
+      solidarityEnabled: false,
+      taxDisabled: false,
+    },
+  );
+
+  assert.ok(Math.abs(result.fundSwitchTaxes - 250) < 0.01);
+  assert.ok(Math.abs(result.retirementBalance - 10_750) < 0.01);
+  assert.equal(result.fundSwitchCount, 1);
+  assert.ok(Math.abs(result.estimatedTaxes - 250) < 0.01);
+});
+
+test("führt mehrere Fondswechsel aus und besteuert jeden neuen Gewinn", () => {
+  const result = calculatePlan(
+    {
+      initialCapital: 10_000,
+      monthlyContribution: 0,
+      annualReturn: 10,
+      annualFee: 0,
+      transactionFee: 0,
+    },
+    {
+      currentAge: 30,
+      retirementAge: 32,
+      lifeExpectancy: 80,
+      depotType: "private",
+      withdrawalEnabled: false,
+      rebalancingEnabled: false,
+      fundSwitchEnabled: true,
+      fundSwitchAges: [31, 32],
+      personalTaxEnabled: false,
+      socialContributionsEnabled: false,
+      saverAllowance: 0,
+      partialExemptionRate: 0,
+      solidarityEnabled: false,
+      taxDisabled: false,
+    },
+  );
+
+  assert.equal(result.fundSwitchCount, 2);
+  assert.ok(Math.abs(result.fundSwitchTaxes - 518.75) < 0.01);
+  assert.ok(Math.abs(result.retirementBalance - 11_556.25) < 0.01);
+});
+
+test("wendet Teilfreistellung, Pauschbetrag, Soli und Szenarioabgaben beim Fondswechsel an", () => {
+  const result = calculatePlan(
+    {
+      initialCapital: 10_000,
+      monthlyContribution: 0,
+      annualReturn: 10,
+      annualFee: 0,
+      transactionFee: 0,
+    },
+    {
+      currentAge: 30,
+      retirementAge: 31,
+      lifeExpectancy: 80,
+      depotType: "private",
+      withdrawalEnabled: false,
+      rebalancingEnabled: false,
+      fundSwitchEnabled: true,
+      fundSwitchAges: [31],
+      personalTaxEnabled: false,
+      socialContributionsEnabled: true,
+      saverAllowance: 100,
+      partialExemptionRate: 30,
+      solidarityEnabled: true,
+      taxDisabled: false,
+    },
+  );
+
+  assert.ok(Math.abs(result.fundSwitchTaxes - 176.25) < 0.01);
+});
+
+test("führt Steuer und Produktkosten beim Fondswechsel getrennt auf", () => {
+  const result = calculatePlan(
+    {
+      initialCapital: 10_000,
+      monthlyContribution: 0,
+      annualReturn: 10,
+      annualFee: 0,
+      annualCustodyFee: 0,
+      transactionFee: 0,
+    },
+    {
+      currentAge: 30,
+      retirementAge: 31,
+      lifeExpectancy: 80,
+      depotType: "private",
+      withdrawalEnabled: false,
+      rebalancingEnabled: false,
+      fundSwitchEnabled: true,
+      fundSwitchAges: [31],
+      personalTaxEnabled: false,
+      socialContributionsEnabled: false,
+      saverAllowance: 0,
+      partialExemptionRate: 0,
+      solidarityEnabled: false,
+      taxDisabled: false,
+    },
+  );
+
+  assert.ok(result.fundSwitchTaxes > 0);
+  assert.ok(Math.abs(result.totalCosts) < 0.01);
+});
+
+test("verrechnet Verluste im selben Steuerjahr mit einer vorherigen Fondswechselsteuer", () => {
+  const result = calculatePlan(
+    {
+      initialCapital: 10_000,
+      monthlyContribution: 0,
+      annualReturn: 10,
+      annualFee: 0,
+      annualCustodyFee: 0,
+      transactionFee: 0,
+    },
+    {
+      currentAge: 30,
+      retirementAge: 31,
+      lifeExpectancy: 32,
+      depotType: "private",
+      withdrawalEnabled: true,
+      withdrawalAmount: 100_000,
+      withdrawalFrequency: "monthly",
+      withdrawalType: "euro",
+      postRetirementReturn: -50,
+      inflationEnabled: false,
+      rebalancingEnabled: false,
+      fundSwitchEnabled: true,
+      fundSwitchAges: [31],
+      personalTaxEnabled: false,
+      socialContributionsEnabled: false,
+      saverAllowance: 0,
+      partialExemptionRate: 0,
+      solidarityEnabled: false,
+      taxDisabled: false,
+    },
+  );
+
+  assert.ok(result.withdrawalTaxes < 0);
+  assert.ok(result.estimatedTaxes >= 0);
+  assert.ok(result.estimatedTaxes < result.fundSwitchTaxes);
+});
+
+test("löst im Rentendepot beim Fondswechsel keine Steuer aus", () => {
+  const result = calculatePlan(
+    {
+      initialCapital: 10_000,
+      monthlyContribution: 0,
+      annualReturn: 10,
+      annualFee: 0,
+      transactionFee: 0,
+    },
+    {
+      currentAge: 30,
+      retirementAge: 31,
+      lifeExpectancy: 80,
+      depotType: "pension",
+      withdrawalEnabled: false,
+      rebalancingEnabled: false,
+      fundSwitchEnabled: true,
+      fundSwitchAges: [31],
+      taxDisabled: false,
+    },
+  );
+
+  assert.equal(result.fundSwitchTaxes, 0);
+  assert.equal(result.fundSwitchCount, 1);
+  assert.ok(Math.abs(result.retirementBalance - 11_000) < 0.01);
 });
 
 test("ordnet Verkäufe im Privatdepot nach dem FIFO-Prinzip zu", () => {
