@@ -3,7 +3,7 @@ import {
   calculatePlan,
   getPensionTaxableShare,
 } from "./calculator.js";
-import { renderChart } from "./chart.js?v=payment-lines1";
+import { getFundSwitchLabel, renderChart } from "./chart.js?v=fund-switch-graph1";
 import {
   addProduct,
   createProducts,
@@ -281,7 +281,12 @@ function renderStatus(plans) {
   elements.removeProduct.disabled = state.products.length === 1;
   elements.addProduct.disabled = state.products.length === 3;
   elements.chartDescription.textContent = plans
-    .map(({ product, result: planResult }) => `${product.name}: ${money.format(planResult.retirementBalance)} zum Rentenbeginn und ${money.format(planResult.endingBalance)} am Modellende.`)
+    .map(({ product, result: planResult }) => {
+      const fundSwitchDescription = planResult.fundSwitchEvents
+        .map(getFundSwitchLabel)
+        .join(" ");
+      return `${product.name}: ${money.format(planResult.retirementBalance)} zum Rentenbeginn und ${money.format(planResult.endingBalance)} am Modellende. ${fundSwitchDescription}`.trim();
+    })
     .join(" ");
 
   summaryElements.name.textContent = selectedPlan.product.name;

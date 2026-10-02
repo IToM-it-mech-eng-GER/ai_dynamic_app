@@ -344,6 +344,8 @@ main { padding: 14px; }
 .chart-contribution-line { fill: none; opacity: .5; stroke-width: 1.5; stroke-dasharray: 5 6; }
 .chart-payment-line { fill: none; opacity: .85; stroke-width: 2; stroke-linecap: round; }
 .chart-endpoint { fill: #fff; stroke-width: 2.5; }
+.chart-switch-impact { stroke-width: 3; stroke-dasharray: 3 2; }
+.chart-switch-marker { fill: #fff; stroke-width: 2.5; }
 .chart-payment-tick { stroke: #cbd2dc; stroke-width: 1; }
 .chart-payment-axis-label { fill: #737e8f; font-size: 10px; }
 .chart-payment-axis-title { fill: #737e8f; font-size: 10px; font-weight: 700; }
@@ -352,6 +354,7 @@ main { padding: 14px; }
 .legend-line { width: 20px; border-top: 2px solid #657084; }
 .legend-line.dashed { border-top-style: dashed; opacity: .7; }
 .legend-line.payment { border-top-color: var(--accent); border-top-style: dashed; }
+.legend-switch { width: 9px; height: 9px; border: 2px solid #657084; border-radius: 50%; background: #fff; }
 
 .comparison-panel { margin-top: 14px; overflow: hidden; }
 .section-heading.compact { padding: 18px 18px 12px; }

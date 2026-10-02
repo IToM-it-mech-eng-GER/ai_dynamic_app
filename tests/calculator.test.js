@@ -274,6 +274,46 @@ test("besteuert einen vollständigen Fondswechsel im Privatdepot", () => {
   assert.ok(Math.abs(result.estimatedTaxes - 250) < 0.01);
 });
 
+test("zeichnet den Steuerabzug eines Fondswechsels als sichtbares Diagrammereignis auf", () => {
+  const result = calculatePlan(
+    {
+      initialCapital: 10_000,
+      monthlyContribution: 0,
+      annualReturn: 10,
+      annualFee: 0,
+      transactionFee: 0,
+    },
+    {
+      currentAge: 30,
+      retirementAge: 31,
+      lifeExpectancy: 80,
+      depotType: "private",
+      withdrawalEnabled: false,
+      rebalancingEnabled: false,
+      fundSwitchEnabled: true,
+      fundSwitchAges: [31],
+      personalTaxEnabled: false,
+      socialContributionsEnabled: false,
+      saverAllowance: 0,
+      partialExemptionRate: 0,
+      solidarityEnabled: false,
+      taxDisabled: false,
+    },
+  );
+
+  assert.deepEqual(result.fundSwitchEvents, [{
+    age: 31,
+    balanceBefore: 11_000,
+    balanceAfter: 10_750,
+    fee: 0,
+    tax: 250,
+  }]);
+  const switchPoints = result.series.filter((point) => point.age === 31);
+  assert.equal(switchPoints.length, 2);
+  assert.equal(switchPoints[0].balance, 11_000);
+  assert.equal(switchPoints[1].balance, 10_750);
+});
+
 test("führt mehrere Fondswechsel aus und besteuert jeden neuen Gewinn", () => {
   const result = calculatePlan(
     {
@@ -430,6 +470,8 @@ test("löst im Rentendepot beim Fondswechsel keine Steuer aus", () => {
 
   assert.equal(result.fundSwitchTaxes, 0);
   assert.equal(result.fundSwitchCount, 1);
+  assert.equal(result.fundSwitchEvents[0].tax, 0);
+  assert.equal(result.fundSwitchEvents[0].balanceBefore, result.fundSwitchEvents[0].balanceAfter);
   assert.ok(Math.abs(result.retirementBalance - 11_000) < 0.01);
 });
 

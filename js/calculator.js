@@ -84,6 +84,7 @@ export function calculatePlan(product, horizonOrScenario) {
   let fundSwitchLoss = 0;
   let fundSwitchTaxes = 0;
   let fundSwitchCount = 0;
+  const fundSwitchEvents = [];
   let annualTaxState = createAnnualTaxState();
   const privateLots = context.depotType === "private"
     ? createInitialLots(normalizedProduct.initialCapital)
@@ -116,6 +117,7 @@ export function calculatePlan(product, horizonOrScenario) {
       const switchAmount = balance;
       const switchFee = switchAmount * normalizedProduct.transactionFee / 100;
       let switchTax = 0;
+      const switchAge = context.currentAge + month / 12;
 
       if (context.depotType === "private") {
         const sale = calculateFifoSale(privateLots, switchAmount);
@@ -136,10 +138,28 @@ export function calculatePlan(product, horizonOrScenario) {
         realizedGains += sale.realizedGain;
       }
 
-      balance = Math.max(0, switchAmount - switchFee - switchTax);
+      const balanceAfterSwitch = Math.max(0, switchAmount - switchFee - switchTax);
+      if (Math.abs(balanceAfterSwitch - switchAmount) > 0.0000001) {
+        series.push({
+          year: month / 12,
+          age: switchAge,
+          balance: switchAmount,
+          contributed,
+          phase: month === savingMonths ? "retirement" : "saving",
+          event: "fund-switch-before",
+        });
+      }
+      balance = balanceAfterSwitch;
       fundSwitchLoss += switchFee;
       fundSwitchTaxes += switchTax;
       fundSwitchCount += 1;
+      fundSwitchEvents.push({
+        age: switchAge,
+        balanceBefore: switchAmount,
+        balanceAfter: balance,
+        fee: switchFee,
+        tax: switchTax,
+      });
 
       if (context.depotType === "private") {
         privateLots.splice(0, privateLots.length);
@@ -253,6 +273,7 @@ export function calculatePlan(product, horizonOrScenario) {
     fundSwitchLoss,
     fundSwitchTaxes,
     fundSwitchCount,
+    fundSwitchEvents,
     estimatedTaxes,
     series,
   };

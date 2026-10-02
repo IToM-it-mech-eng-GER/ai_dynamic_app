@@ -36,6 +36,19 @@ export function getPaymentLinePattern(index, lineCount) {
   };
 }
 
+export function getFundSwitchLabel(event) {
+  const age = Math.round(Number(event?.age) || 0);
+  const tax = Math.max(0, Number(event?.tax) || 0);
+  const fee = Math.max(0, Number(event?.fee) || 0);
+  if (tax > 0) {
+    return `Fondswechsel mit ${age}: ${formatWholeEuro(tax)} Steuerabzug.`;
+  }
+  if (fee > 0) {
+    return `Fondswechsel mit ${age}: ${formatWholeEuro(fee)} Wechselkosten.`;
+  }
+  return `Fondswechsel mit ${age}: steuerfrei.`;
+}
+
 export function renderChart(svg, plans) {
   svg.replaceChildren();
 
@@ -93,6 +106,17 @@ export function renderChart(svg, plans) {
       }),
     );
 
+    renderFundSwitchEvents(
+      svg,
+      result.fundSwitchEvents ?? [],
+      product.color,
+      startAge,
+      horizon,
+      maximum,
+      plotWidth,
+      plotHeight,
+    );
+
     const monthlyNetPayment = getMonthlyNetPayment(plan);
     if (monthlyNetPayment > 0) {
       const retirementX = scaleX(product.scenario.retirementAge - startAge, horizon, plotWidth);
@@ -108,6 +132,44 @@ export function renderChart(svg, plans) {
       }));
       paymentLineIndex += 1;
     }
+  }
+}
+
+function renderFundSwitchEvents(
+  svg,
+  events,
+  color,
+  startAge,
+  horizon,
+  maximum,
+  plotWidth,
+  plotHeight,
+) {
+  for (const event of events) {
+    const x = scaleX(event.age - startAge, horizon, plotWidth);
+    const beforeY = scaleY(event.balanceBefore, maximum, plotHeight);
+    const afterY = scaleY(event.balanceAfter, maximum, plotHeight);
+    const marker = createSvgElement("circle", {
+      class: "chart-switch-marker",
+      cx: x,
+      cy: afterY,
+      r: 4.5,
+      stroke: color,
+      "vector-effect": "non-scaling-stroke",
+    });
+    marker.append(createSvgElement("title", {}, getFundSwitchLabel(event)));
+    svg.append(
+      createSvgElement("line", {
+        class: "chart-switch-impact",
+        x1: x,
+        x2: x,
+        y1: beforeY,
+        y2: afterY,
+        stroke: color,
+        "vector-effect": "non-scaling-stroke",
+      }),
+      marker,
+    );
   }
 }
 
@@ -219,6 +281,10 @@ function getNiceMaximum(values) {
   const normalized = rawStep / magnitude;
   const factor = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
   return factor * magnitude * 4;
+}
+
+function formatWholeEuro(value) {
+  return monthlyCurrency.format(value).replace(/\u00a0/g, " ");
 }
 
 function createSvgElement(tagName, attributes, text = "") {

@@ -39,14 +39,14 @@ test("die zusätzliche Plan-Auswahl wird nicht angezeigt", async () => {
 test("die aktuelle Diagrammversion wird ohne alten Browsercache geladen", async () => {
   const app = await readFile(appUrl, "utf8");
 
-  assert.match(app, /from "\.\/chart\.js\?v=payment-lines1"/);
+  assert.match(app, /from "\.\/chart\.js\?v=fund-switch-graph1"/);
 });
 
 test("die korrigierte Fondswechselsteuerung wird ohne alten Browsercache geladen", async () => {
   const html = await readFile(indexUrl, "utf8");
   const app = await readFile(appUrl, "utf8");
 
-  assert.match(html, /app\.js\?v=fund-switch-years1/);
+  assert.match(html, /app\.js\?v=fund-switch-graph1/);
   assert.match(app, /scenario\.js\?v=fund-switch-years1/);
 });
 
@@ -71,6 +71,15 @@ test("Fondswechsel werden vollständig und über Plus und Minus verwaltet", asyn
   const app = await readFile(appUrl, "utf8");
   assert.match(app, /fund-switch-remove/);
   assert.match(app, /addEventListener\("change", handleFundSwitchChange\)/);
+});
+
+test("Fondswechsel werden im Vermögensdiagramm sichtbar erklärt", async () => {
+  const html = await readFile(indexUrl, "utf8");
+  const styles = await readFile(stylesUrl, "utf8");
+
+  assert.match(html, /legend-switch/);
+  assert.match(styles, /\.chart-switch-marker/);
+  assert.match(styles, /\.chart-switch-impact/);
 });
 
 test("Eingaben setzen die Scrollposition innerhalb eines Schritts nicht zurück", async () => {
