@@ -3,7 +3,7 @@ import {
   calculatePlan,
   getPensionTaxableShare,
 } from "./calculator.js";
-import { renderChart } from "./chart.js";
+import { renderChart } from "./chart.js?v=payment-lines1";
 import {
   addProduct,
   createProducts,

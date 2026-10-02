@@ -4,6 +4,7 @@ import test from "node:test";
 
 const stylesUrl = new URL("../styles.css", import.meta.url);
 const indexUrl = new URL("../index.html", import.meta.url);
+const appUrl = new URL("../js/app.js", import.meta.url);
 
 test("der Assistentenrahmen erzeugt keinen zweiten Scrollbereich", async () => {
   const styles = await readFile(stylesUrl, "utf8");
@@ -33,4 +34,10 @@ test("die zusätzliche Plan-Auswahl wird nicht angezeigt", async () => {
   const html = await readFile(indexUrl, "utf8");
 
   assert.doesNotMatch(html, /id="product-tabs"/);
+});
+
+test("die aktuelle Diagrammversion wird ohne alten Browsercache geladen", async () => {
+  const app = await readFile(appUrl, "utf8");
+
+  assert.match(app, /from "\.\/chart\.js\?v=payment-lines1"/);
 });

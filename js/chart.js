@@ -27,6 +27,15 @@ export function getMonthlyNetPayment({ product, result }) {
   return isAnnualAmount ? baseAmount / 12 : baseAmount;
 }
 
+export function getPaymentLinePattern(index, lineCount) {
+  const segmentLength = 6;
+  const count = Math.max(1, Math.min(3, Number(lineCount) || 1));
+  return {
+    dashArray: count === 1 ? "none" : `${segmentLength} ${segmentLength * (count - 1)}`,
+    dashOffset: Math.max(0, Number(index) || 0) * segmentLength,
+  };
+}
+
 export function renderChart(svg, plans) {
   svg.replaceChildren();
 
@@ -39,6 +48,7 @@ export function renderChart(svg, plans) {
     plans.flatMap(({ result }) => result.series.flatMap((point) => [point.balance, point.contributed])),
   );
   const monthlyNetPayments = plans.map(getMonthlyNetPayment);
+  const activePaymentCount = monthlyNetPayments.filter((payment) => payment > 0).length;
   const paymentMaximum = monthlyNetPayments.some((payment) => payment > 0)
     ? getNiceMaximum(monthlyNetPayments)
     : 0;
@@ -46,6 +56,7 @@ export function renderChart(svg, plans) {
   renderGrid(svg, maximum, startAge, endAge, plotWidth, plotHeight);
   if (paymentMaximum > 0) renderPaymentAxis(svg, paymentMaximum, plotWidth, plotHeight);
 
+  let paymentLineIndex = 0;
   for (const plan of plans) {
     const { product, result } = plan;
     const linePath = createLinePath(result.series, "balance", startAge, horizon, maximum, plotWidth, plotHeight);
@@ -86,12 +97,16 @@ export function renderChart(svg, plans) {
     if (monthlyNetPayment > 0) {
       const retirementX = scaleX(product.scenario.retirementAge - startAge, horizon, plotWidth);
       const paymentY = scaleY(monthlyNetPayment, paymentMaximum, plotHeight);
+      const pattern = getPaymentLinePattern(paymentLineIndex, activePaymentCount);
       svg.append(createSvgElement("path", {
         class: "chart-payment-line",
         d: `M ${retirementX} ${paymentY} L ${endX} ${paymentY}`,
         stroke: product.color,
+        "stroke-dasharray": pattern.dashArray,
+        "stroke-dashoffset": pattern.dashOffset,
         "vector-effect": "non-scaling-stroke",
       }));
+      paymentLineIndex += 1;
     }
   }
 }

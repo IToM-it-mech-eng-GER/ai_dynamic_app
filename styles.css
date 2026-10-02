@@ -351,7 +351,7 @@ main { padding: 14px; }
 .chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend-line { width: 20px; border-top: 2px solid #657084; }
 .legend-line.dashed { border-top-style: dashed; opacity: .7; }
-.legend-line.payment { border-top-color: var(--accent); }
+.legend-line.payment { border-top-color: var(--accent); border-top-style: dashed; }
 
 .comparison-panel { margin-top: 14px; overflow: hidden; }
 .section-heading.compact { padding: 18px 18px 12px; }

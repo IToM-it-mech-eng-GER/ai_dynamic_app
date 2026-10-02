@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getMonthlyNetPayment } from "../js/chart.js";
+import { getMonthlyNetPayment, getPaymentLinePattern } from "../js/chart.js";
 
 function createPlan(overrides = {}) {
   return {
@@ -32,4 +32,10 @@ test("rechnet prozentuale Nettozahlungen auf einen Monatswert um", () => {
 
 test("blendet Nettozahlungen bei deaktivierter Entnahme aus", () => {
   assert.equal(getMonthlyNetPayment(createPlan({ withdrawalEnabled: false })), 0);
+});
+
+test("versetzt gleich hohe Nettozahlungslinien lückenlos gegeneinander", () => {
+  assert.deepEqual(getPaymentLinePattern(0, 2), { dashArray: "6 6", dashOffset: 0 });
+  assert.deepEqual(getPaymentLinePattern(1, 2), { dashArray: "6 6", dashOffset: 6 });
+  assert.deepEqual(getPaymentLinePattern(2, 3), { dashArray: "6 12", dashOffset: 12 });
 });
