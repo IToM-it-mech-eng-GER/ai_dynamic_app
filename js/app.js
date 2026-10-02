@@ -14,7 +14,8 @@ import {
   getSwipeStep,
   moveWizardStep,
   normalizeScenario,
-} from "./scenario.js";
+  updateFundSwitchAge,
+} from "./scenario.js?v=fund-switch-years1";
 import {
   PROFILE_STORAGE_KEY,
   cloneSetup,
@@ -503,12 +504,21 @@ function handleSettingsInput(event) {
   const fundSwitchIndex = field.dataset.fundSwitchIndex;
 
   if (fundSwitchIndex !== undefined) {
-    if (!Number.isFinite(field.valueAsNumber)) return;
     const selectedProduct = getSelectedProduct();
-    const fundSwitchAges = [...selectedProduct.scenario.fundSwitchAges];
-    fundSwitchAges[Number(fundSwitchIndex)] = field.valueAsNumber;
+    const update = updateFundSwitchAge(
+      selectedProduct.scenario.fundSwitchAges,
+      Number(fundSwitchIndex),
+      field.valueAsNumber,
+      selectedProduct.scenario.currentAge,
+      selectedProduct.scenario.retirementAge,
+    );
+    field.setCustomValidity(update.valid
+      ? ""
+      : "Bitte ein eindeutiges Alter innerhalb des Anlagezeitraums eingeben.");
+    field.setAttribute("aria-invalid", String(!update.valid));
+    if (!update.valid) return;
     state.products = updateProduct(state.products, state.selectedId, {
-      scenario: { ...selectedProduct.scenario, fundSwitchAges },
+      scenario: { ...selectedProduct.scenario, fundSwitchAges: update.fundSwitchAges },
     });
     render({ syncInputs: false, syncFundSwitches: false });
     return;
@@ -533,9 +543,23 @@ function handleFundSwitchChange(event) {
   const fundSwitchIndex = field.dataset.fundSwitchIndex;
   if (fundSwitchIndex === undefined) return;
   const selectedProduct = getSelectedProduct();
-  const fundSwitchAges = [...selectedProduct.scenario.fundSwitchAges];
-  fundSwitchAges[Number(fundSwitchIndex)] = field.valueAsNumber;
-  const scenario = normalizeScenario({ ...selectedProduct.scenario, fundSwitchAges });
+  const update = updateFundSwitchAge(
+    selectedProduct.scenario.fundSwitchAges,
+    Number(fundSwitchIndex),
+    field.valueAsNumber,
+    selectedProduct.scenario.currentAge,
+    selectedProduct.scenario.retirementAge,
+  );
+  if (!update.valid) {
+    field.reportValidity();
+    return;
+  }
+  field.setCustomValidity("");
+  field.removeAttribute("aria-invalid");
+  const scenario = normalizeScenario({
+    ...selectedProduct.scenario,
+    fundSwitchAges: update.fundSwitchAges,
+  });
   state.products = updateProduct(state.products, state.selectedId, { scenario });
   render();
 }
@@ -569,9 +593,12 @@ function handleFundSwitchAction(event) {
 
 function findNextFundSwitchAge(scenario) {
   const usedAges = new Set(scenario.fundSwitchAges);
+  const latestAge = scenario.fundSwitchAges.length > 0
+    ? Math.max(...scenario.fundSwitchAges)
+    : scenario.currentAge;
   const preferredStart = Math.min(
     scenario.retirementAge,
-    (scenario.fundSwitchAges.at(-1) ?? scenario.currentAge) + 1,
+    latestAge + 1,
   );
   for (let age = preferredStart; age <= scenario.retirementAge; age += 1) {
     if (!usedAges.has(age)) return age;

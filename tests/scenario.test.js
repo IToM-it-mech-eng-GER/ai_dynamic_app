@@ -5,6 +5,7 @@ import {
   getSwipeStep,
   moveWizardStep,
   normalizeScenario,
+  updateFundSwitchAge,
 } from "../js/scenario.js";
 
 test("ordnet persönliche Altersangaben in einer gültigen Reihenfolge", () => {
@@ -40,7 +41,7 @@ test("begrenzt Eingaben für Entnahme und politische Annahmen", () => {
   assert.equal(scenario.postRetirementReturn, 30);
   assert.equal(scenario.inflationRate, 15);
   assert.equal(scenario.marginalTaxRate, 60);
-  assert.deepEqual(scenario.fundSwitchAges, [38, 62, 67]);
+  assert.deepEqual(scenario.fundSwitchAges, [62, 67, 38]);
 });
 
 test("lässt Rebalancing ausschließlich im Rentendepot als Renditebonus zu", () => {
@@ -68,6 +69,24 @@ test("übernimmt gespeicherte einzelne Fondswechsel in die neue Liste", () => {
   });
 
   assert.deepEqual(scenario.fundSwitchAges, [58]);
+});
+
+test("behält die Reihenfolge geänderter Fondswechsel bei", () => {
+  const scenario = normalizeScenario({
+    currentAge: 37,
+    retirementAge: 67,
+    fundSwitchAges: [65, 63, 64],
+  });
+
+  assert.deepEqual(scenario.fundSwitchAges, [65, 63, 64]);
+});
+
+test("ändert genau einen Fondswechsel und verhindert doppelte Jahre", () => {
+  const changed = updateFundSwitchAge([62, 63], 0, 65, 37, 67);
+  const duplicate = updateFundSwitchAge([62, 63], 0, 63, 37, 67);
+
+  assert.deepEqual(changed, { fundSwitchAges: [65, 63], valid: true });
+  assert.deepEqual(duplicate, { fundSwitchAges: [62, 63], valid: false });
 });
 
 test("behält das bisherige Rentendepot als Standard", () => {

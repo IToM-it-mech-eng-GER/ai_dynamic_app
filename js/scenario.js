@@ -71,7 +71,7 @@ export function normalizeScenario(values = {}) {
     DEFAULT_SCENARIO.fundSwitchAges[0],
     currentAge + 1,
     retirementAge,
-  )))].sort((left, right) => left - right);
+  )))];
   const legacyRebalancingBonus = values.rebalancingBonus
     ?? values.rebalancingReduction
     ?? DEFAULT_SCENARIO.rebalancingBonus;
@@ -119,6 +119,35 @@ export function normalizeScenario(values = {}) {
     taxDisabled: normalizeBoolean(values.taxDisabled, DEFAULT_SCENARIO.taxDisabled),
     solidarityEnabled: normalizeBoolean(values.solidarityEnabled, DEFAULT_SCENARIO.solidarityEnabled),
   };
+}
+
+export function updateFundSwitchAge(
+  fundSwitchAges,
+  index,
+  value,
+  currentAge,
+  retirementAge,
+) {
+  const ages = Array.isArray(fundSwitchAges) ? [...fundSwitchAges] : [];
+  const targetIndex = Number(index);
+  const age = Number(value);
+  const minimum = Number(currentAge) + 1;
+  const maximum = Number(retirementAge);
+  const isValidIndex = Number.isInteger(targetIndex)
+    && targetIndex >= 0
+    && targetIndex < ages.length;
+  const isUnique = !ages.some((existingAge, existingIndex) => (
+    existingIndex !== targetIndex && Number(existingAge) === age
+  ));
+  const valid = isValidIndex
+    && Number.isInteger(age)
+    && age >= minimum
+    && age <= maximum
+    && isUnique;
+
+  if (!valid) return { fundSwitchAges: ages, valid: false };
+  ages[targetIndex] = age;
+  return { fundSwitchAges: ages, valid: true };
 }
 
 export function moveWizardStep(currentStep, direction) {

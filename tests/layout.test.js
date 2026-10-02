@@ -42,6 +42,14 @@ test("die aktuelle Diagrammversion wird ohne alten Browsercache geladen", async 
   assert.match(app, /from "\.\/chart\.js\?v=payment-lines1"/);
 });
 
+test("die korrigierte Fondswechselsteuerung wird ohne alten Browsercache geladen", async () => {
+  const html = await readFile(indexUrl, "utf8");
+  const app = await readFile(appUrl, "utf8");
+
+  assert.match(html, /app\.js\?v=fund-switch-years1/);
+  assert.match(app, /scenario\.js\?v=fund-switch-years1/);
+});
+
 test("das Diagramm schrumpft ohne horizontalen Scrollbereich", async () => {
   const styles = await readFile(stylesUrl, "utf8");
   const scrollRule = styles.match(/\.chart-scroll\s*\{([^}]*)\}/)?.[1] ?? "";
