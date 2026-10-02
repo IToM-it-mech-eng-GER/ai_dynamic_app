@@ -335,8 +335,8 @@ main { padding: 14px; }
 .chart-heading h2, .section-heading h2 { font-size: 18px; }
 .chart-period { color: var(--muted); text-align: right; font-size: 10px; }
 .chart-period strong { display: block; margin-top: 4px; color: var(--ink); font-size: 12px; }
-.chart-scroll { min-width: 0; overflow-x: auto; }
-.growth-chart { display: block; width: 100%; min-width: 650px; height: auto; }
+.chart-scroll { min-width: 0; overflow: hidden; }
+.growth-chart { display: block; width: 100%; min-width: 0; height: auto; }
 .chart-grid-line { stroke: #e8ebef; stroke-width: 1; }
 .chart-axis-label { fill: #919aaa; font-size: 12px; }
 .chart-area { opacity: .07; }
@@ -347,7 +347,7 @@ main { padding: 14px; }
 .chart-payment-tick { stroke: #cbd2dc; stroke-width: 1; }
 .chart-payment-axis-label { fill: #737e8f; font-size: 10px; }
 .chart-payment-axis-title { fill: #737e8f; font-size: 10px; font-weight: 700; }
-.chart-legend { display: flex; justify-content: flex-end; gap: 18px; padding: 0 10px 4px; color: var(--muted); font-size: 10px; }
+.chart-legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px 18px; padding: 0 10px 4px; color: var(--muted); font-size: 10px; }
 .chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend-line { width: 20px; border-top: 2px solid #657084; }
 .legend-line.dashed { border-top-style: dashed; opacity: .7; }

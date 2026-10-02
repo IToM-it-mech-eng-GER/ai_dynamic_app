@@ -41,3 +41,14 @@ test("die aktuelle Diagrammversion wird ohne alten Browsercache geladen", async 
 
   assert.match(app, /from "\.\/chart\.js\?v=payment-lines1"/);
 });
+
+test("das Diagramm schrumpft ohne horizontalen Scrollbereich", async () => {
+  const styles = await readFile(stylesUrl, "utf8");
+  const scrollRule = styles.match(/\.chart-scroll\s*\{([^}]*)\}/)?.[1] ?? "";
+  const chartRule = styles.match(/\.growth-chart\s*\{([^}]*)\}/)?.[1] ?? "";
+  const legendRule = styles.match(/\.chart-legend\s*\{([^}]*)\}/)?.[1] ?? "";
+
+  assert.match(scrollRule, /overflow:\s*hidden\s*;/);
+  assert.match(chartRule, /min-width:\s*0\s*;/);
+  assert.match(legendRule, /flex-wrap:\s*wrap\s*;/);
+});
