@@ -11,7 +11,7 @@ const PRODUCT_LIMITS = Object.freeze({
 
 const PRODUCT_DEFAULTS = Object.freeze({
   name: "ETF-Sparplan",
-  initialCapital: 5_000,
+  initialCapital: 0,
   monthlyContribution: 300,
   annualReturn: 6,
   annualFee: 0.2,

@@ -15,6 +15,14 @@ test("erstellt ein bis drei voneinander unabhängige Produkte", () => {
   assert.notEqual(createProducts(2)[0].id, createProducts(2)[1].id);
 });
 
+test("initialisiert alle neuen Produkte ohne Startkapital", () => {
+  const products = createProducts(3);
+  const extended = addProduct(createProducts(1));
+
+  assert.deepEqual(products.map((product) => product.initialCapital), [0, 0, 0]);
+  assert.equal(extended[1].initialCapital, 0);
+});
+
 test("fügt höchstens drei Produkte hinzu", () => {
   let products = createProducts(1);
 

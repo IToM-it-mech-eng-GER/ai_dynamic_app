@@ -73,6 +73,10 @@ test("begrenzt unplausible Produktwerte auf sichere Bereiche", () => {
   assert.equal(product.annualFee, 0);
 });
 
+test("verwendet ohne Angabe kein Startkapital", () => {
+  assert.equal(normalizeProduct({}).initialCapital, 0);
+});
+
 test("begrenzt den gemeinsamen Anlagehorizont auf 1 bis 50 Jahre", () => {
   assert.equal(normalizeHorizon(0), 1);
   assert.equal(normalizeHorizon(25.8), 26);

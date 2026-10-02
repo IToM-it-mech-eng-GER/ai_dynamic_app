@@ -9,7 +9,7 @@ import {
   createProducts,
   removeProduct,
   updateProduct,
-} from "./products.js";
+} from "./products.js?v=initial-capital1";
 import {
   getSwipeStep,
   moveWizardStep,

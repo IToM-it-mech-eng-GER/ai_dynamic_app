@@ -35,7 +35,7 @@ function createProduct(index) {
     color: COLORS[index - 1],
     ...normalizeProduct({
       name: `ETF-Sparplan ${index}`,
-      initialCapital: 5_000,
+      initialCapital: 0,
       monthlyContribution: 300,
       annualReturn: DEFAULT_RETURNS[index - 1],
       annualFee: 0.2,
