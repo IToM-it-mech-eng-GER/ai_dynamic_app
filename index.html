@@ -17,7 +17,7 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23070f20'/%3E%3Cpath d='M15 43 27 31l8 7 14-17' fill='none' stroke='%23ff6b16' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="./styles.css?v=layoutfix1" />
+    <link rel="stylesheet" href="./styles.css?v=payments1" />
   </head>
   <body>
     <a class="skip-link" href="#main-content">Direkt zum Inhalt</a>
@@ -92,6 +92,7 @@
             <div class="chart-legend" aria-hidden="true">
               <span><i class="legend-line"></i>Vermögen</span>
               <span><i class="legend-line dashed"></i>Einzahlungen</span>
+              <span><i class="legend-line payment"></i>Nettozahlung / Monat</span>
             </div>
             <p class="sr-only" id="chart-description" aria-live="polite"></p>
           </section>
@@ -202,7 +203,7 @@
                       </div>
                       <fieldset class="segment-field"><legend>Periode</legend><div class="segmented"><label><input data-scenario-field="withdrawalFrequency" type="radio" name="withdrawal-frequency" value="monthly" /><span>Monatlich</span></label><label><input data-scenario-field="withdrawalFrequency" type="radio" name="withdrawal-frequency" value="yearly" /><span>Jährlich</span></label></div></fieldset>
                       <fieldset class="segment-field"><legend>Eingabe</legend><div class="segmented"><label><input data-scenario-field="withdrawalType" type="radio" name="withdrawal-type" value="euro" /><span>Euro</span></label><label><input data-scenario-field="withdrawalType" type="radio" name="withdrawal-type" value="percent" /><span>Prozent</span></label></div></fieldset>
-                      <div class="field-list"><label class="row-field" for="withdrawal-amount"><span>Netto-Entnahme</span><span class="input-with-unit"><input id="withdrawal-amount" data-scenario-field="withdrawalAmount" type="number" min="0" max="100000" step="10" inputmode="decimal" /><i id="withdrawal-unit">€</i></span></label></div>
+                      <div class="field-list"><label class="row-field" for="withdrawal-amount"><span>Netto-Entnahme</span><span class="input-with-unit"><input id="withdrawal-amount" data-scenario-field="withdrawalAmount" type="number" min="0" max="100000" step="1" inputmode="numeric" /><i id="withdrawal-unit">€</i></span></label></div>
                       <p class="calculation-hint" id="withdrawal-explanation">Die Entnahme reduziert das Depot in gleicher Höhe.</p>
                       <label class="switch-row" for="inflation-enabled"><span>Inflation berücksichtigen</span><input id="inflation-enabled" data-scenario-field="inflationEnabled" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
                       <div class="field-list dependent-fields" data-dependent="inflationEnabled"><label class="row-field" for="inflation-rate"><span>Inflation</span><span class="input-with-unit"><input id="inflation-rate" data-scenario-field="inflationRate" type="number" min="0" max="15" step="0.1" inputmode="decimal" /><i>%</i></span></label></div>
@@ -280,6 +281,6 @@
       <p>Steuermodell nach deutschem Recht 2026. Ohne Kirchensteuer, individuelle Sonderausgaben, Kranken- und Pflegeversicherung, Verlustverrechnung sowie Vorabpauschalen und Ausschüttungen. Keine Anlage- oder Steuerberatung.</p>
     </footer>
 
-    <script type="module" src="./js/app.js?v=scrollfix1"></script>
+    <script type="module" src="./js/app.js?v=payments1"></script>
   </body>
 </html>

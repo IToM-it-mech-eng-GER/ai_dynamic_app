@@ -19,6 +19,7 @@ import {
   PROFILE_STORAGE_KEY,
   cloneSetup,
   normalizeProfileName,
+  overwriteProfile,
   readProfiles,
   removeProfile,
   serializeProfiles,
@@ -352,7 +353,12 @@ function createProfileItem(profile) {
   deleteButton.type = "button";
   deleteButton.dataset.profileAction = "delete";
   deleteButton.dataset.profileId = profile.id;
-  actions.append(loadButton, deleteButton);
+  const overwriteButton = createElement("button", "profile-action", "Speichern");
+  overwriteButton.type = "button";
+  overwriteButton.dataset.profileAction = "overwrite";
+  overwriteButton.dataset.profileId = profile.id;
+  overwriteButton.setAttribute("aria-label", `Aktuelles Setup als ${profile.name} speichern`);
+  actions.append(loadButton, overwriteButton, deleteButton);
   item.append(heading, details, actions);
   return item;
 }
@@ -388,6 +394,14 @@ function handleProfileAction(event) {
     state.profilesOpen = false;
     elements.profileStatus.textContent = `„${profile.name}“ geladen.`;
     render();
+    return;
+  }
+
+  if (button.dataset.profileAction === "overwrite") {
+    state.profiles = overwriteProfile(state.profiles, profile.id, createSetupSnapshot());
+    if (!persistProfiles(state.profiles)) return;
+    elements.profileStatus.textContent = `„${profile.name}“ überschrieben.`;
+    renderProfiles();
     return;
   }
 

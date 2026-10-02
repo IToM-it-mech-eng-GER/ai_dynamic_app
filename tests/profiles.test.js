@@ -7,6 +7,7 @@ import {
   removeProfile,
   serializeProfiles,
   normalizeProfileName,
+  overwriteProfile,
   upsertProfile,
 } from "../js/profiles.js";
 import { createProducts } from "../js/products.js";
@@ -57,4 +58,24 @@ test("entfernt nur das gewählte Profil", () => {
 
   assert.deepEqual(removeProfile(profiles, "profile-1").map((profile) => profile.name), ["Zwei"]);
   assert.deepEqual(cloneSetup(setup), setup);
+});
+
+test("überschreibt ein gespeichertes Profil mit dem aktuellen Setup", () => {
+  const setup = createSetup();
+  const profiles = upsertProfile([], "G's Vergleich", setup, {
+    id: "profile-1",
+    savedAt: "2026-10-01",
+  });
+  const currentSetup = createSetup();
+  currentSetup.products[0].scenario.withdrawalAmount = 570;
+
+  const overwritten = overwriteProfile(profiles, "profile-1", currentSetup, {
+    savedAt: "2026-10-02",
+  });
+
+  assert.equal(overwritten.length, 1);
+  assert.equal(overwritten[0].id, "profile-1");
+  assert.equal(overwritten[0].name, "G's Vergleich");
+  assert.equal(overwritten[0].setup.products[0].scenario.withdrawalAmount, 570);
+  assert.equal(overwritten[0].savedAt, new Date("2026-10-02").toISOString());
 });

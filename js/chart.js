@@ -1,7 +1,7 @@
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 const WIDTH = 900;
 const HEIGHT = 440;
-const PADDING = Object.freeze({ top: 28, right: 34, bottom: 54, left: 82 });
+const PADDING = Object.freeze({ top: 28, right: 78, bottom: 54, left: 82 });
 
 const compactCurrency = new Intl.NumberFormat("de-DE", {
   style: "currency",
@@ -9,6 +9,23 @@ const compactCurrency = new Intl.NumberFormat("de-DE", {
   notation: "compact",
   maximumFractionDigits: 1,
 });
+const monthlyCurrency = new Intl.NumberFormat("de-DE", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0,
+});
+
+export function getMonthlyNetPayment({ product, result }) {
+  const scenario = product?.scenario;
+  if (!scenario?.withdrawalEnabled) return 0;
+
+  const amount = Math.max(0, Number(scenario.withdrawalAmount) || 0);
+  const baseAmount = scenario.withdrawalType === "percent"
+    ? Math.max(0, Number(result?.retirementBalance) || 0) * amount / 100
+    : amount;
+  const isAnnualAmount = scenario.withdrawalType === "percent" || scenario.withdrawalFrequency === "yearly";
+  return isAnnualAmount ? baseAmount / 12 : baseAmount;
+}
 
 export function renderChart(svg, plans) {
   svg.replaceChildren();
@@ -21,10 +38,16 @@ export function renderChart(svg, plans) {
   const maximum = getNiceMaximum(
     plans.flatMap(({ result }) => result.series.flatMap((point) => [point.balance, point.contributed])),
   );
+  const monthlyNetPayments = plans.map(getMonthlyNetPayment);
+  const paymentMaximum = monthlyNetPayments.some((payment) => payment > 0)
+    ? getNiceMaximum(monthlyNetPayments)
+    : 0;
 
   renderGrid(svg, maximum, startAge, endAge, plotWidth, plotHeight);
+  if (paymentMaximum > 0) renderPaymentAxis(svg, paymentMaximum, plotWidth, plotHeight);
 
-  for (const { product, result } of plans) {
+  for (const plan of plans) {
+    const { product, result } = plan;
     const linePath = createLinePath(result.series, "balance", startAge, horizon, maximum, plotWidth, plotHeight);
     const contributionPath = createLinePath(result.series, "contributed", startAge, horizon, maximum, plotWidth, plotHeight);
     const lastPoint = result.series.at(-1);
@@ -57,6 +80,56 @@ export function renderChart(svg, plans) {
         stroke: product.color,
         "vector-effect": "non-scaling-stroke",
       }),
+    );
+
+    const monthlyNetPayment = getMonthlyNetPayment(plan);
+    if (monthlyNetPayment > 0) {
+      const retirementX = scaleX(product.scenario.retirementAge - startAge, horizon, plotWidth);
+      const paymentY = scaleY(monthlyNetPayment, paymentMaximum, plotHeight);
+      svg.append(createSvgElement("path", {
+        class: "chart-payment-line",
+        d: `M ${retirementX} ${paymentY} L ${endX} ${paymentY}`,
+        stroke: product.color,
+        "vector-effect": "non-scaling-stroke",
+      }));
+    }
+  }
+}
+
+function renderPaymentAxis(svg, maximum, plotWidth, plotHeight) {
+  const axisX = PADDING.left + plotWidth;
+  svg.append(createSvgElement(
+    "text",
+    {
+      class: "chart-payment-axis-title",
+      x: axisX + 14,
+      y: PADDING.top - 10,
+      "text-anchor": "start",
+    },
+    "€/Monat",
+  ));
+
+  for (let index = 0; index <= 4; index += 1) {
+    const ratio = index / 4;
+    const y = PADDING.top + plotHeight - ratio * plotHeight;
+    svg.append(
+      createSvgElement("line", {
+        class: "chart-payment-tick",
+        x1: axisX,
+        x2: axisX + 6,
+        y1: y,
+        y2: y,
+      }),
+      createSvgElement(
+        "text",
+        {
+          class: "chart-payment-axis-label",
+          x: axisX + 10,
+          y: y + 4,
+          "text-anchor": "start",
+        },
+        monthlyCurrency.format(ratio * maximum),
+      ),
     );
   }
 }

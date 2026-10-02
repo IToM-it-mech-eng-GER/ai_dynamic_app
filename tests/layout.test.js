@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const stylesUrl = new URL("../styles.css", import.meta.url);
+const indexUrl = new URL("../index.html", import.meta.url);
 
 test("der Assistentenrahmen erzeugt keinen zweiten Scrollbereich", async () => {
   const styles = await readFile(stylesUrl, "utf8");
@@ -19,4 +20,11 @@ test("der Assistent bleibt innerhalb des Parameterbereichs", async () => {
   assert.match(panelRule, /overflow:\s*clip\s*;/);
   assert.match(viewportRule, /min-width:\s*0\s*;/);
   assert.match(viewportRule, /width:\s*100%\s*;/);
+});
+
+test("die Nettoentnahme lässt sich in Ein-Euro-Schritten einstellen", async () => {
+  const html = await readFile(indexUrl, "utf8");
+  const withdrawalInput = html.match(/<input id="withdrawal-amount"[^>]*>/)?.[0] ?? "";
+
+  assert.match(withdrawalInput, /step="1"/);
 });

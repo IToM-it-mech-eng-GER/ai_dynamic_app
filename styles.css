@@ -218,6 +218,8 @@ button { color: inherit; }
 .profile-action:hover { border-color: #b7c1ce; background: var(--soft); }
 .profile-action[data-profile-action="load"] { background: var(--ink); color: #fff; }
 .profile-action[data-profile-action="load"]:hover { background: #1b2738; }
+.profile-action[data-profile-action="overwrite"] { border-color: #ffc7a5; background: #fff7ed; color: #c2410c; }
+.profile-action[data-profile-action="overwrite"]:hover { border-color: var(--accent); background: #ffeddc; }
 .profile-action[data-profile-action="delete"] { color: #b42318; }
 
 main { padding: 14px; }
@@ -340,11 +342,16 @@ main { padding: 14px; }
 .chart-area { opacity: .07; }
 .chart-line { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
 .chart-contribution-line { fill: none; opacity: .5; stroke-width: 1.5; stroke-dasharray: 5 6; }
+.chart-payment-line { fill: none; opacity: .85; stroke-width: 2; stroke-linecap: round; }
 .chart-endpoint { fill: #fff; stroke-width: 2.5; }
+.chart-payment-tick { stroke: #cbd2dc; stroke-width: 1; }
+.chart-payment-axis-label { fill: #737e8f; font-size: 10px; }
+.chart-payment-axis-title { fill: #737e8f; font-size: 10px; font-weight: 700; }
 .chart-legend { display: flex; justify-content: flex-end; gap: 18px; padding: 0 10px 4px; color: var(--muted); font-size: 10px; }
 .chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend-line { width: 20px; border-top: 2px solid #657084; }
 .legend-line.dashed { border-top-style: dashed; opacity: .7; }
+.legend-line.payment { border-top-color: var(--accent); }
 
 .comparison-panel { margin-top: 14px; overflow: hidden; }
 .section-heading.compact { padding: 18px 18px 12px; }

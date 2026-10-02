@@ -50,6 +50,15 @@ export function removeProfile(profiles, profileId) {
   return profiles.filter((profile) => profile.id !== profileId);
 }
 
+export function overwriteProfile(profiles, profileId, setup, metadata = {}) {
+  const existingProfile = profiles.find((profile) => profile.id === profileId);
+  if (!existingProfile) return profiles;
+  return upsertProfile(profiles, existingProfile.name, setup, {
+    id: existingProfile.id,
+    savedAt: metadata.savedAt,
+  });
+}
+
 export function cloneSetup(setup) {
   return JSON.parse(JSON.stringify(setup));
 }
