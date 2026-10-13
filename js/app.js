@@ -1,8 +1,9 @@
 import {
   TAX_RULE_YEAR,
   calculatePlan,
+  getPrivateAnnuityTaxableShare,
   getPensionTaxableShare,
-} from "./calculator.js";
+} from "./calculator.js?v=pension-tax1";
 import { getFundSwitchLabel, renderChart } from "./chart.js?v=fund-switch-graph1";
 import {
   addProduct,
@@ -43,6 +44,7 @@ const money = new Intl.NumberFormat("de-DE", {
 const elements = {
   addProduct: getElement("add-product"),
   addFundSwitch: getElement("add-fund-switch"),
+  annuityTaxShare: getElement("annuity-tax-share"),
   chart: getElement("growth-chart"),
   chartDescription: getElement("chart-description"),
   chartRange: getElement("chart-range"),
@@ -335,6 +337,7 @@ function renderDependencies() {
   });
   const retirementStartYear = TAX_RULE_YEAR + scenario.retirementAge - scenario.currentAge;
   const pensionTaxableShare = getPensionTaxableShare(retirementStartYear);
+  const annuityTaxableShare = getPrivateAnnuityTaxableShare(scenario.retirementAge);
   const saverAllowanceMaximum = scenario.depotType === "private"
     ? (scenario.taxAssessment === "joint" ? 2_000 : 1_000)
     : 2_000;
@@ -342,12 +345,13 @@ function renderDependencies() {
   elements.saverAllowance.value = String(scenario.saverAllowance);
   elements.privateTaxYear.textContent = `Rentenbeginn ${retirementStartYear}`;
   elements.pensionTaxShare.textContent = `${pensionTaxableShare.toLocaleString("de-DE")} % Rentenanteil steuerpflichtig`;
+  elements.annuityTaxShare.textContent = `${annuityTaxableShare.toLocaleString("de-DE")} % Ertragsanteil steuerpflichtig`;
   elements.personalTaxLabel.textContent = scenario.depotType === "private"
     ? "Günstigerprüfung anwenden"
-    : "Persönlicher Steuersatz";
+    : "Manuellen Grenzsteuersatz verwenden";
   elements.withdrawalExplanation.textContent = scenario.depotType === "private"
     ? "Die Nettoentnahme bleibt das Ziel. Steuern erhöhen den nötigen Bruttoverkauf und beschleunigen den Kapitalverbrauch."
-    : "Die Entnahme reduziert das Depot in gleicher Höhe.";
+    : `Die Nettoentnahme bleibt das Ziel. Versteuert werden ${annuityTaxableShare.toLocaleString("de-DE")} % der Leibrente; die Bruttoentnahme steigt entsprechend.`;
   elements.withdrawalUnit.textContent = scenario.withdrawalType === "percent" ? "%" : "€";
 }
 

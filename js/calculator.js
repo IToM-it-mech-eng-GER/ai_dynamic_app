@@ -24,6 +24,17 @@ const PENSION_EXPENSE_ALLOWANCE = 102;
 const CAPITAL_TAX_RATE = 0.25;
 const SOLIDARITY_RATE = 0.055;
 const OPTIONAL_SOCIAL_RATE = 0.03;
+const PRIVATE_ANNUITY_TAXABLE_SHARES = Object.freeze([
+  [1, 59], [3, 58], [5, 57], [8, 56], [10, 55], [12, 54], [14, 53],
+  [16, 52], [18, 51], [20, 50], [22, 49], [24, 48], [26, 47], [27, 46],
+  [29, 45], [31, 44], [32, 43], [34, 42], [35, 41], [37, 40], [38, 39],
+  [40, 38], [41, 37], [42, 36], [44, 35], [45, 34], [47, 33], [48, 32],
+  [49, 31], [50, 30], [52, 29], [53, 28], [54, 27], [56, 26], [57, 25],
+  [58, 24], [59, 23], [61, 22], [62, 21], [63, 20], [64, 19], [66, 18],
+  [67, 17], [68, 16], [70, 15], [71, 14], [73, 13], [74, 12], [75, 11],
+  [77, 10], [79, 9], [80, 8], [82, 7], [84, 6], [87, 5], [91, 4],
+  [93, 3], [96, 2], [Number.POSITIVE_INFINITY, 1],
+]);
 
 export function normalizeHorizon(value) {
   const number = toFiniteNumber(value, 30);
@@ -86,6 +97,7 @@ export function calculatePlan(product, horizonOrScenario) {
   let fundSwitchCount = 0;
   const fundSwitchEvents = [];
   let annualTaxState = createAnnualTaxState();
+  let annualPensionTaxState = createAnnualPensionTaxState();
   const privateLots = context.depotType === "private"
     ? createInitialLots(normalizedProduct.initialCapital)
     : [];
@@ -222,6 +234,22 @@ export function calculatePlan(product, horizonOrScenario) {
         taxForWithdrawal = withdrawal.tax;
         gainForWithdrawal = withdrawal.realizedGain;
         annualTaxState = withdrawal.taxState;
+      } else if (context.depotType === "pension" && desiredWithdrawal > 0) {
+        const taxYear = TAX_RULE_YEAR + years + Math.floor((month - 1) / 12);
+        annualPensionTaxState = advanceAnnualPensionTaxState(
+          annualPensionTaxState,
+          taxYear,
+        );
+        const withdrawal = calculatePensionNetWithdrawal(
+          balance,
+          desiredWithdrawal,
+          context,
+          annualPensionTaxState,
+        );
+        actualWithdrawal = withdrawal.netWithdrawal;
+        grossWithdrawal = withdrawal.grossWithdrawal;
+        taxForWithdrawal = withdrawal.tax;
+        annualPensionTaxState = withdrawal.taxState;
       }
 
       balance = Math.max(0, balance - grossWithdrawal);
@@ -245,10 +273,7 @@ export function calculatePlan(product, horizonOrScenario) {
 
   const totalCosts = Math.max(0, grossBalance - balance - fundSwitchTaxes);
   const totalGain = balance + grossWithdrawals - contributed;
-  const taxableGain = Math.max(0, totalGain);
-  const estimatedTaxes = context.depotType === "private"
-    ? withdrawalTaxes + fundSwitchTaxes
-    : calculateEstimatedTaxes(taxableGain, context);
+  const estimatedTaxes = Math.max(0, withdrawalTaxes + fundSwitchTaxes);
 
   return {
     product: normalizedProduct,
@@ -257,9 +282,7 @@ export function calculatePlan(product, horizonOrScenario) {
     netAnnualReturn,
     rebalancingBonus,
     endingBalance: balance,
-    netEndingBalance: context.depotType === "private"
-      ? balance
-      : Math.max(0, balance - estimatedTaxes),
+    netEndingBalance: balance,
     grossEndingBalance: grossBalance,
     retirementBalance,
     retirementGrossBalance,
@@ -333,6 +356,11 @@ export function getPensionTaxableShare(retirementYear) {
   if (year <= 2022) return 80 + (year - 2020);
   if (year <= 2058) return 82 + (year - 2022) * 0.5;
   return 100;
+}
+
+export function getPrivateAnnuityTaxableShare(retirementAge) {
+  const age = Math.max(0, Math.floor(Number(retirementAge) || 0));
+  return PRIVATE_ANNUITY_TAXABLE_SHARES.find(([maximumAge]) => age <= maximumAge)[1];
 }
 
 function createCalculationContext(horizonOrScenario) {
@@ -418,6 +446,115 @@ function calculatePrivateNetWithdrawal(lots, desiredNetWithdrawal, context, taxS
       assessedTax: selected.assessedTax,
     },
   };
+}
+
+function calculatePensionNetWithdrawal(
+  availableBalance,
+  desiredNetWithdrawal,
+  context,
+  taxState,
+) {
+  const available = Math.max(0, Number(availableBalance) || 0);
+  const desired = Math.max(0, Number(desiredNetWithdrawal) || 0);
+  if (available <= 0 || desired <= 0) {
+    return {
+      netWithdrawal: 0,
+      grossWithdrawal: 0,
+      tax: 0,
+      taxState,
+    };
+  }
+
+  const evaluate = (grossWithdrawal) => {
+    const annualGrossWithdrawals = taxState.annualGrossWithdrawals + grossWithdrawal;
+    const assessedTax = calculateAnnualPensionWithdrawalTax(
+      annualGrossWithdrawals,
+      context,
+    );
+    const tax = assessedTax - taxState.assessedTax;
+    return {
+      assessedTax,
+      annualGrossWithdrawals,
+      grossWithdrawal,
+      netWithdrawal: Math.max(0, grossWithdrawal - tax),
+      tax,
+    };
+  };
+
+  let selected = evaluate(available);
+  if (selected.netWithdrawal > desired) {
+    let lower = Math.min(desired, available);
+    let upper = available;
+    for (let iteration = 0; iteration < 60; iteration += 1) {
+      const middle = (lower + upper) / 2;
+      const candidate = evaluate(middle);
+      if (candidate.netWithdrawal < desired) lower = middle;
+      else upper = middle;
+    }
+    selected = evaluate(upper);
+  }
+
+  return {
+    netWithdrawal: selected.netWithdrawal,
+    grossWithdrawal: selected.grossWithdrawal,
+    tax: selected.tax,
+    taxState: {
+      year: taxState.year,
+      annualGrossWithdrawals: selected.annualGrossWithdrawals,
+      assessedTax: selected.assessedTax,
+    },
+  };
+}
+
+function calculateAnnualPensionWithdrawalTax(annualGrossWithdrawals, context) {
+  if (context.taxDisabled || annualGrossWithdrawals <= 0) return 0;
+
+  const retirementStartYear = TAX_RULE_YEAR + context.retirementAge - context.currentAge;
+  const statutoryTaxableShare = getPensionTaxableShare(retirementStartYear) / 100;
+  const annuityTaxableShare = getPrivateAnnuityTaxableShare(context.retirementAge) / 100;
+  const statutoryTaxableIncome = context.statutoryPensionMonthly
+    * 12
+    * statutoryTaxableShare;
+  const annuityTaxableIncome = annualGrossWithdrawals * annuityTaxableShare;
+  const baselineTaxableIncome = Math.max(
+    0,
+    statutoryTaxableIncome - PENSION_EXPENSE_ALLOWANCE,
+  );
+  const combinedTaxableIncome = Math.max(
+    0,
+    statutoryTaxableIncome + annuityTaxableIncome - PENSION_EXPENSE_ALLOWANCE,
+  );
+  const baselineIncomeTax = calculateIncomeTax2026(
+    baselineTaxableIncome,
+    context.taxAssessment,
+  );
+  let combinedIncomeTax;
+
+  if (context.personalTaxEnabled) {
+    const basicAllowance = context.taxAssessment === "joint" ? 24_696 : 12_348;
+    const taxableIncrease = Math.max(0, combinedTaxableIncome - basicAllowance)
+      - Math.max(0, baselineTaxableIncome - basicAllowance);
+    combinedIncomeTax = baselineIncomeTax
+      + taxableIncrease * context.marginalTaxRate / 100;
+  } else {
+    combinedIncomeTax = calculateIncomeTax2026(
+      combinedTaxableIncome,
+      context.taxAssessment,
+    );
+  }
+
+  const incomeTaxIncrease = Math.max(0, combinedIncomeTax - baselineIncomeTax);
+  const solidarityIncrease = context.solidarityEnabled
+    ? Math.max(
+      0,
+      calculateSolidaritySurcharge(combinedIncomeTax, context.taxAssessment)
+        - calculateSolidaritySurcharge(baselineIncomeTax, context.taxAssessment),
+    )
+    : 0;
+  const optionalSocialContributions = context.socialContributionsEnabled
+    ? annuityTaxableIncome * OPTIONAL_SOCIAL_RATE
+    : 0;
+  return incomeTaxIncrease + solidarityIncrease + optionalSocialContributions;
 }
 
 function calculateAnnualPrivateTax(taxableCapitalIncome, context) {
@@ -515,6 +652,14 @@ function createAnnualTaxState(year = 0) {
   };
 }
 
+function createAnnualPensionTaxState(year = 0) {
+  return {
+    year,
+    annualGrossWithdrawals: 0,
+    assessedTax: 0,
+  };
+}
+
 function advanceAnnualTaxState(taxState, year) {
   if (taxState.year === year) return taxState;
   return {
@@ -524,12 +669,9 @@ function advanceAnnualTaxState(taxState, year) {
   };
 }
 
-function calculateEstimatedTaxes(taxableGain, context) {
-  if (context.taxDisabled || taxableGain <= context.saverAllowance) return 0;
-  const baseRate = context.personalTaxEnabled ? context.marginalTaxRate / 100 : 0.25;
-  const solidarityRate = context.solidarityEnabled ? baseRate * 0.055 : 0;
-  const socialRate = context.socialContributionsEnabled ? 0.03 : 0;
-  return (taxableGain - context.saverAllowance) * Math.min(0.65, baseRate + solidarityRate + socialRate);
+function advanceAnnualPensionTaxState(taxState, year) {
+  if (taxState.year === year) return taxState;
+  return createAnnualPensionTaxState(year);
 }
 
 function normalizeName(value) {

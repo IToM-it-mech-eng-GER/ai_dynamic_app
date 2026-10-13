@@ -2,7 +2,7 @@
 
 Statische Single-Page-App zum Vergleich von bis zu drei ETF-Sparplänen. Persönliche Zeiträume, Entnahmephase, Strategie, Steuerannahmen und Depotkosten werden über einen sechsstufigen Eingabe-Assistenten gesteuert. Die App benötigt keinen Build-Schritt und kann direkt über GitHub Pages veröffentlicht werden.
 
-Die Eingaben lassen sich ein- und ausklappen. Auf kleinen Bildschirmen können die sechs Seiten zusätzlich horizontal gewischt werden. Jeder Plan speichert seine sechs Seiten unabhängig. Für Privatdepots berechnet die App den nötigen Bruttoverkauf für eine gewünschte Nettoentnahme anhand von FIFO, Teilfreistellung, Sparer-Pauschbetrag, Rentenbesteuerung und Günstigerprüfung nach dem Rechtsstand 2026.
+Die Eingaben lassen sich ein- und ausklappen. Auf kleinen Bildschirmen können die sechs Seiten zusätzlich horizontal gewischt werden. Jeder Plan speichert seine sechs Seiten unabhängig. Für Privatdepots berechnet die App den nötigen Bruttoverkauf für eine gewünschte Nettoentnahme anhand von FIFO, Teilfreistellung, Sparer-Pauschbetrag, Rentenbesteuerung und Günstigerprüfung nach dem Rechtsstand 2026. Beim Rentendepot wird die lebenslange Rente mit dem altersabhängigen Ertragsanteil besteuert; Grundfreibetrag, gesetzliche Rente und Veranlagungsart werden berücksichtigt.
 
 ## Lokal starten
 
@@ -29,6 +29,10 @@ Die Ergebnisse sind Modellrechnungen und keine Anlage- oder Steuerberatung. Indi
 - [§ 22 EStG](https://www.gesetze-im-internet.de/estg/__22.html): Besteuerungsanteil der gesetzlichen Rente
 - [§ 20 InvStG](https://www.gesetze-im-internet.de/invstg_2018/__20.html): Teilfreistellung von Investmentfonds
 - [Solidaritätszuschlaggesetz 1995](https://www.gesetze-im-internet.de/solzg_1995/)
+
+## Rechtsgrundlage des Rentendepots
+
+- [§ 22 Nummer 1 Satz 3 Buchstabe a Doppelbuchstabe bb EStG](https://www.gesetze-im-internet.de/estg/__22.html): altersabhängiger Ertragsanteil einer lebenslangen privaten Leibrente
 
 ## GitHub Pages
 

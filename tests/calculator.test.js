@@ -5,6 +5,7 @@ import {
   calculateFifoSale,
   calculateIncomeTax2026,
   calculatePlan,
+  getPrivateAnnuityTaxableShare,
   getPensionTaxableShare,
   normalizeHorizon,
   normalizeProduct,
@@ -119,6 +120,7 @@ test("berechnet Anspar- und Entnahmephase entlang der Altersangaben", () => {
       postRetirementReturn: 0,
       inflationEnabled: false,
       rebalancingEnabled: false,
+      taxDisabled: true,
     },
   );
 
@@ -502,6 +504,91 @@ test("ermittelt den gesetzlichen Besteuerungsanteil der Rente", () => {
   assert.equal(getPensionTaxableShare(2026), 84);
   assert.equal(getPensionTaxableShare(2056), 99);
   assert.equal(getPensionTaxableShare(2058), 100);
+});
+
+test("ermittelt den gesetzlichen Ertragsanteil einer privaten Leibrente nach Rentenalter", () => {
+  assert.equal(getPrivateAnnuityTaxableShare(66), 18);
+  assert.equal(getPrivateAnnuityTaxableShare(67), 17);
+  assert.equal(getPrivateAnnuityTaxableShare(68), 16);
+  assert.equal(getPrivateAnnuityTaxableShare(92), 3);
+  assert.equal(getPrivateAnnuityTaxableShare(97), 1);
+});
+
+test("erhöht im Rentendepot die Bruttoentnahme um die Steuer auf den Ertragsanteil", () => {
+  const product = {
+    initialCapital: 10_000,
+    monthlyContribution: 0,
+    annualReturn: 0,
+    annualFee: 0,
+  };
+  const baseScenario = {
+    currentAge: 66,
+    retirementAge: 67,
+    lifeExpectancy: 68,
+    depotType: "pension",
+    statutoryPensionMonthly: 2_000,
+    withdrawalEnabled: true,
+    withdrawalAmount: 1_000,
+    withdrawalFrequency: "yearly",
+    withdrawalType: "euro",
+    postRetirementReturn: 0,
+    inflationEnabled: false,
+    rebalancingEnabled: false,
+    fundSwitchEnabled: false,
+    personalTaxEnabled: true,
+    marginalTaxRate: 30,
+    socialContributionsEnabled: false,
+    solidarityEnabled: false,
+    taxDisabled: false,
+  };
+
+  const age67 = calculatePlan(product, baseScenario);
+  const age66 = calculatePlan(product, {
+    ...baseScenario,
+    currentAge: 65,
+    retirementAge: 66,
+    lifeExpectancy: 67,
+  });
+
+  assert.ok(Math.abs(age67.totalWithdrawals - 1_000) < 0.01);
+  assert.ok(Math.abs(age67.grossWithdrawals - 1_000 / (1 - 0.17 * 0.3)) < 0.01);
+  assert.ok(Math.abs(age67.estimatedTaxes - (age67.grossWithdrawals - 1_000)) < 0.01);
+  assert.ok(age66.grossWithdrawals > age67.grossWithdrawals);
+  assert.equal(age67.netEndingBalance, age67.endingBalance);
+});
+
+test("wendet im Rentendepot den Grundfreibetrag auf den Ertragsanteil an", () => {
+  const result = calculatePlan(
+    {
+      initialCapital: 10_000,
+      monthlyContribution: 0,
+      annualReturn: 0,
+      annualFee: 0,
+    },
+    {
+      currentAge: 66,
+      retirementAge: 67,
+      lifeExpectancy: 68,
+      depotType: "pension",
+      statutoryPensionMonthly: 0,
+      withdrawalEnabled: true,
+      withdrawalAmount: 1_000,
+      withdrawalFrequency: "yearly",
+      withdrawalType: "euro",
+      postRetirementReturn: 0,
+      inflationEnabled: false,
+      rebalancingEnabled: false,
+      fundSwitchEnabled: false,
+      personalTaxEnabled: true,
+      marginalTaxRate: 30,
+      socialContributionsEnabled: false,
+      solidarityEnabled: false,
+      taxDisabled: false,
+    },
+  );
+
+  assert.equal(result.estimatedTaxes, 0);
+  assert.ok(Math.abs(result.grossWithdrawals - result.totalWithdrawals) < 0.01);
 });
 
 test("verkauft im Privatdepot brutto mehr als die gewünschte Nettoentnahme", () => {

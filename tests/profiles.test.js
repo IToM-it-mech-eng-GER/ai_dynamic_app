@@ -11,6 +11,7 @@ import {
   upsertProfile,
 } from "../js/profiles.js";
 import { createProducts } from "../js/products.js";
+import { calculatePlan } from "../js/calculator.js";
 
 function createSetup() {
   const products = createProducts(2);
@@ -99,4 +100,43 @@ test("überschreibt ein gespeichertes Profil mit dem aktuellen Setup", () => {
   assert.equal(overwritten[0].name, "G's Vergleich");
   assert.equal(overwritten[0].setup.products[0].scenario.withdrawalAmount, 570);
   assert.equal(overwritten[0].savedAt, new Date("2026-10-02").toISOString());
+});
+
+test("berechnet ein gespeichertes Rentendepot nach dem Laden mit dem Ertragsanteil neu", () => {
+  const setup = createSetup();
+  setup.products[0] = {
+    ...setup.products[0],
+    initialCapital: 10_000,
+    monthlyContribution: 0,
+    annualReturn: 0,
+    annualFee: 0,
+    scenario: {
+      ...setup.products[0].scenario,
+      currentAge: 66,
+      retirementAge: 67,
+      lifeExpectancy: 68,
+      statutoryPensionMonthly: 2_000,
+      withdrawalAmount: 1_000,
+      withdrawalFrequency: "yearly",
+      inflationEnabled: false,
+      rebalancingEnabled: false,
+      fundSwitchEnabled: false,
+      marginalTaxRate: 30,
+      socialContributionsEnabled: false,
+      solidarityEnabled: false,
+    },
+  };
+  const saved = upsertProfile([], "Rentenprofil", setup, {
+    id: "profile-rente",
+    savedAt: "2026-10-13",
+  });
+  const [loaded] = readProfiles(serializeProfiles(saved));
+
+  const result = calculatePlan(
+    loaded.setup.products[0],
+    loaded.setup.products[0].scenario,
+  );
+
+  assert.ok(result.grossWithdrawals > result.totalWithdrawals);
+  assert.ok(result.estimatedTaxes > 0);
 });

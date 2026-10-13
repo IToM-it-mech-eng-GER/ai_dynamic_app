@@ -30,6 +30,15 @@ test("die Nettoentnahme lässt sich in Ein-Euro-Schritten einstellen", async () 
   assert.match(withdrawalInput, /step="1"/);
 });
 
+test("das Rentendepot erklärt den altersabhängigen Ertragsanteil", async () => {
+  const html = await readFile(indexUrl, "utf8");
+  const app = await readFile(appUrl, "utf8");
+
+  assert.match(html, /id="annuity-tax-share"/);
+  assert.match(html, /id="pension-statutory-pension"/);
+  assert.match(app, /getPrivateAnnuityTaxableShare/);
+});
+
 test("die zusätzliche Plan-Auswahl wird nicht angezeigt", async () => {
   const html = await readFile(indexUrl, "utf8");
 
@@ -46,7 +55,7 @@ test("die korrigierte Fondswechselsteuerung wird ohne alten Browsercache geladen
   const html = await readFile(indexUrl, "utf8");
   const app = await readFile(appUrl, "utf8");
 
-  assert.match(html, /app\.js\?v=fund-switch-graph1/);
+  assert.match(html, /app\.js\?v=pension-tax1/);
   assert.match(app, /scenario\.js\?v=fund-switch-years1/);
 });
 
