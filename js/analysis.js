@@ -1,4 +1,4 @@
-import { ANALYSIS_API_BASE_URL } from "./analysis-config.js";
+import { ANALYSIS_API_BASE_URL } from "./analysis-config.js?v=api1";
 import { renderAnalysisChart } from "./analysis-chart.js";
 import {
   ANALYSIS_STORAGE_KEY,
