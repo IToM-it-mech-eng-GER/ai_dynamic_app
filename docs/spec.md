@@ -2,13 +2,14 @@
 
 ## Ziel
 
-Eine deutschsprachige, statische Single-Page-App vergleicht ein bis drei ETF-Sparpläne von der Anspar- bis optional in die Entnahmephase. Änderungen an Produkt- und Szenariodaten aktualisieren Kennzahlen, Diagramm und Tabelle sofort. Die Anwendung ist als verständlicher Prototyp für GitHub Pages gedacht.
+Eine deutschsprachige, statische Web-App vergleicht ein bis drei ETF-Sparpläne von der Anspar- bis optional in die Entnahmephase. Änderungen an Produkt- und Szenariodaten aktualisieren Kennzahlen, Diagramm und Tabelle sofort. Ein davon getrennter Analysebereich wertet reale Kurs- und Fundamentaldaten von Aktien und ETFs aus. Die Anwendung ist für GitHub Pages gedacht.
 
 ## Technik
 
 - Semantisches HTML, CSS und JavaScript als ES-Module
-- Keine Laufzeitabhängigkeiten und kein Backend
+- Keine Laufzeitabhängigkeiten im Browser
 - SVG-Diagramm aus lokalen Berechnungsdaten
+- Separater Cloudflare-Dienst als Vermittlung für externe Marktdaten
 - Eingebaute Node-Testausführung wie bei der 34D_WebApp
 
 ## Befehle
@@ -25,6 +26,11 @@ Eine deutschsprachige, statische Single-Page-App vergleicht ein bis drei ETF-Spa
 - `js/scenario.js`: Szenariozustand, Eingabegrenzen und Assistentennavigation
 - `js/chart.js`: SVG-Diagramm
 - `js/app.js`: Zustand, Formulare und Darstellung
+- `analyse.html`: geschützter, getrennter Analysebereich
+- `js/analysis-model.js`: lokaler Analysezustand und gestapelte Kursreihen
+- `js/analysis-chart.js`: SVG-Kursdiagramm
+- `js/analysis.js`: Bedienung, lokaler Speicher und Datenabruf
+- `worker/worker.js`: WKN-Auflösung, Marktdatenabruf und Tagescache
 - `tests/`: Rechentests
 
 ## Stil
@@ -38,7 +44,8 @@ Die Rechenlogik wird vor der Umsetzung mit Node-Tests beschrieben. Geprüft werd
 ## Grenzen
 
 - Immer: Eingaben begrenzen, Text sicher ausgeben, Berechnung als Modell kennzeichnen
-- Vorher fragen: neue Abhängigkeiten, Backend oder externe ETF-Daten
+- Externe Zugangsschlüssel niemals an den Browser oder ins Repository geben
+- WKN serverseitig validieren und externe Antworten vor der Speicherung normalisieren
 - Nie: Live-Daten vortäuschen, Nutzerdaten übertragen oder Finanzberatung versprechen
 
 ## Erfolgskriterien
@@ -61,6 +68,11 @@ Die Rechenlogik wird vor der Umsetzung mit Node-Tests beschrieben. Geprüft werd
 - Die Oberfläche folgt der sterilen Weiß-Grau-Optik der Referenzen mit Orange als Interaktionsfarbe.
 - Die App funktioniert ab 320 Pixel Breite und ist per Tastatur bedienbar.
 - Die App läuft unverändert auf GitHub Pages.
+- Die Analyse ist als eigene Seite erreichbar und verändert die bestehende Vergleichsrechnung nicht.
+- Aktien und ETFs lassen sich per WKN, Kaufdatum, Kaufpreis und Stückzahl hinzufügen und einzeln aktivieren.
+- Geladene Daten bleiben im Browser erhalten und der Vermittlungsdienst speichert Antworten 24 Stunden zwischen.
+- Aktive Kursverläufe werden transparent gestapelt; jede Reihe darf an ihrem eigenen letzten verfügbaren Datum enden.
+- Umsatz, operatives Ergebnis, freier Cashflow, EBITDA-Marge, Bilanzsumme, Kurs-Umsatz-Verhältnis, liquide Mittel und Schulden werden für bis zu fünf Geschäftsjahre dargestellt.
 
 ## Sechs Eingabeseiten
 
@@ -73,4 +85,4 @@ Die Rechenlogik wird vor der Umsetzung mit Node-Tests beschrieben. Geprüft werd
 
 ## Nicht enthalten
 
-Historische Kursdaten, Produktempfehlungen und rechtsverbindliche Steuerberatung. Im Privatdepot nicht enthalten sind Kirchensteuer, individuelle Sonderausgaben, Kranken- und Pflegeversicherung, Vorabpauschalen und Ausschüttungen.
+Produktempfehlungen und rechtsverbindliche Steuerberatung. Im Privatdepot nicht enthalten sind Kirchensteuer, individuelle Sonderausgaben, Kranken- und Pflegeversicherung, Vorabpauschalen und Ausschüttungen. Die Passwortabfrage auf GitHub Pages ist keine vollwertige Zugriffskontrolle. Historische Fundamentaldaten von ETFs sowie nicht vom Datenanbieter abgedeckte Wertpapiere werden als nicht verfügbar angezeigt.

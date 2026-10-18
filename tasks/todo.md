@@ -43,3 +43,19 @@
 - [x] Privatdepot mit steuerlicher Nettoentnahme ergänzen
   - Abnahme: FIFO, Teilfreistellung, Freibeträge und gesetzliche Rente bestimmen den Bruttoverkauf je Produkt.
   - Prüfung: `npm test`, Produktwechsel sowie Desktop- und Mobilansicht im Browser
+
+- [x] Eigenständigen Analysebereich und Kennwortabfrage ergänzen
+  - Abnahme: Der neue Menüpunkt öffnet ausschließlich die Analyseseite; bestehende Bereiche bleiben unverändert.
+  - Prüfung: Strukturtests und Browserprüfung
+
+- [x] Wertpapiere und lokale Datenspeicherung umsetzen
+  - Abnahme: WKN, Kaufdatum, Kaufpreis und Aktivstatus bleiben nach dem Neuladen erhalten.
+  - Prüfung: `npm test`
+
+- [ ] Kurs- und Fundamentaldaten sicher anbinden
+  - Abnahme: Der Vermittlungsdienst löst gültige WKN auf, schützt Zugangsschlüssel und speichert Antworten 24 Stunden zwischen.
+  - Prüfung: Schnittstellen- und Eingabeprüfungen; Veröffentlichung benötigt noch einen Alpha-Vantage-Schlüssel und die Cloudflare-Adresse.
+
+- [x] Kurs- und Fundamentalanalyse darstellen
+  - Abnahme: Aktive Produkte erscheinen im gemeinsamen Flächendiagramm; acht Kennzahlen zeigen bis zu fünf Geschäftsjahre je Produkt.
+  - Prüfung: `npm test`, Syntaxprüfung und Browserprüfung

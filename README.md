@@ -4,6 +4,8 @@ Statische Single-Page-App zum Vergleich von bis zu drei ETF-Sparplänen. Persön
 
 Die Eingaben lassen sich ein- und ausklappen. Auf kleinen Bildschirmen können die sechs Seiten zusätzlich horizontal gewischt werden. Jeder Plan speichert seine sechs Seiten unabhängig. Für Privatdepots berechnet die App den nötigen Bruttoverkauf für eine gewünschte Nettoentnahme anhand von FIFO, Teilfreistellung, Sparer-Pauschbetrag, Rentenbesteuerung und Günstigerprüfung nach dem Rechtsstand 2026. Beim Rentendepot wird die lebenslange Rente mit dem altersabhängigen Ertragsanteil besteuert; Grundfreibetrag, gesetzliche Rente und Veranlagungsart werden berücksichtigt.
 
+Der getrennte Bereich **Analyse** verwaltet Aktien und ETFs über WKN, Kaufdatum, Kaufpreis und Stückzahl. Abgerufene Kurs- und Fundamentaldaten werden im Browser gespeichert. Aktive Produkte werden entsprechend ihrer gehaltenen Anteile in einem gemeinsamen transparenten Flächendiagramm dargestellt; acht Unternehmenskennzahlen zeigen bis zu fünf Geschäftsjahre. Für ETFs sind Fundamentaldaten häufig nicht verfügbar.
+
 ## Lokal starten
 
 ```bash
@@ -36,4 +38,17 @@ Die Ergebnisse sind Modellrechnungen und keine Anlage- oder Steuerberatung. Indi
 
 ## GitHub Pages
 
-Den Projektinhalt in ein GitHub-Repository übertragen und unter **Settings → Pages** die Veröffentlichung aus dem Hauptzweig und dem Stammverzeichnis aktivieren. Da die App keine externen Abhängigkeiten und keinen Build-Schritt besitzt, sind keine weiteren Anpassungen nötig.
+Den Projektinhalt in ein GitHub-Repository übertragen und unter **Settings → Pages** die Veröffentlichung aus dem Hauptzweig und dem Stammverzeichnis aktivieren. Die Vergleichsrechnung benötigt keinen Build-Schritt.
+
+## Online-Daten der Analyse
+
+Der Ordner `worker/` enthält den vorgesehenen Cloudflare-Dienst. Er löst WKN über OpenFIGI auf, lädt Kurs- und Unternehmensdaten von Alpha Vantage und speichert erfolgreiche Antworten 24 Stunden im Cloudflare-Cache. Der Browser speichert die bereits geladenen Daten zusätzlich lokal.
+
+Für den Betrieb sind folgende Schritte nötig:
+
+1. Einen eigenen Alpha-Vantage-Zugangsschlüssel anlegen.
+2. Im Ordner `worker/` das Cloudflare-Geheimnis `ALPHA_VANTAGE_API_KEY` setzen.
+3. Den Worker veröffentlichen.
+4. Die veröffentlichte Worker-Adresse in `js/analysis-config.js` eintragen.
+
+Ein optionaler OpenFIGI-Schlüssel kann als `OPENFIGI_API_KEY` hinterlegt werden. Geheimnisse gehören ausschließlich in Cloudflare und niemals in dieses Repository. Die lokale Passwortabfrage der statischen Seite ist nur eine Sichtbarriere und ersetzt keine serverseitige Anmeldung. Das kostenlose Alpha-Vantage-Angebot ist stark begrenzt; der tägliche Cache reduziert deshalb erneute Abrufe.

@@ -40,6 +40,29 @@ Der leere Projektordner erhält eine kleine statische App nach dem Muster der 34
 
 - Steuerwerte bleiben eine vereinfachte Modellannahme und keine Steuerberatung.
 
+## Ausbaustufe 3: Wertpapieranalyse
+
+### 1. Getrennte Oberfläche
+
+- Eigenständige Analyseseite ergänzen und die bestehende Vergleichsseite unverändert lassen
+- Zugriff über eine lokale Kennwortabfrage begrenzen
+- Aktien und ETFs über WKN, Kaufdatum und Kaufpreis verwalten
+
+### 2. Daten und Auswertung
+
+- WKN über einen kleinen Cloudflare-Dienst auflösen
+- Historische Wochenkurse und Fundamentaldaten abrufen und 24 Stunden zwischenspeichern
+- Kursdaten sowie Käufe dauerhaft im Browser speichern
+- Aktive Produkte in einem transparenten Flächendiagramm zusammenführen
+- Acht Fundamentalkriterien über die letzten fünf verfügbaren Geschäftsjahre darstellen
+
+### 3. Qualität und Betrieb
+
+- Eingaben und Antworten an beiden Systemgrenzen prüfen
+- Zugangsschlüssel ausschließlich als Cloudflare-Geheimnis speichern
+- Fehlende ETF-Kennzahlen verständlich als nicht verfügbar kennzeichnen
+- Logik, Darstellung und Browserablauf automatisiert und manuell prüfen
+
 ## Ausbaustufe 2: Eingabe-Assistent
 
 ### 1. Modell
