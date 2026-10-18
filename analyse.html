@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Historische Kurs- und Fundamentalanalyse für Aktien und ETFs." />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.workers.dev; object-src 'none'; base-uri 'self'; form-action 'self'"
+    />
+    <title>Renditeatlas – Wertpapieranalyse</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23070f20'/%3E%3Cpath d='M15 43 27 31l8 7 14-17' fill='none' stroke='%23ff6b16' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./styles.css?v=fund-switch-graph1" />
+    <link rel="stylesheet" href="./analysis.css?v=analysis1" />
+  </head>
+  <body class="analysis-body">
+    <a class="skip-link" href="#analysis-main">Direkt zum Inhalt</a>
+
+    <header class="app-header analysis-header">
+      <a class="brand" href="./index.html" aria-label="Renditeatlas – zur Übersicht">
+        <span class="brand-mark" aria-hidden="true">R↗</span>
+        <span><strong>Renditeatlas</strong><small>ETF-Vergleich</small></span>
+      </a>
+      <nav class="view-tabs" aria-label="Auswertung">
+        <a href="./index.html#chart-title">Ablaufleistungen</a>
+        <a href="./index.html#comparison-title">Vergleich</a>
+        <a href="./analyse.html" aria-current="page">Analyse</a>
+        <a href="./index.html">Profile</a>
+      </nav>
+      <div class="header-actions">
+        <span class="local-badge">Lokal gespeichert</span>
+      </div>
+    </header>
+
+    <main id="analysis-main" class="analysis-main" tabindex="-1" hidden>
+      <section class="analysis-hero">
+        <div>
+          <p class="eyebrow">Marktdaten &amp; Fundamentaldaten</p>
+          <h1>Wertpapieranalyse</h1>
+          <p>Kursentwicklung seit dem Kauf und Kennzahlen der letzten fünf Geschäftsjahre.</p>
+        </div>
+        <button class="analysis-add-button" id="analysis-add" type="button">
+          <span aria-hidden="true">＋</span> Wertpapier hinzufügen
+        </button>
+      </section>
+
+      <p class="analysis-status" id="analysis-status" aria-live="polite"></p>
+
+      <section class="analysis-products-section" aria-labelledby="analysis-products-title">
+        <div class="analysis-section-heading">
+          <div>
+            <p class="eyebrow">Deine Auswahl</p>
+            <h2 id="analysis-products-title">Aktien und ETFs</h2>
+          </div>
+          <span id="analysis-count">0 Produkte</span>
+        </div>
+        <div class="analysis-products" id="analysis-products"></div>
+        <div class="analysis-empty" id="analysis-empty">
+          <span aria-hidden="true">↗</span>
+          <h3>Noch keine Wertpapiere</h3>
+          <p>Füge eine WKN, dein Kaufdatum und deinen damaligen Kaufpreis hinzu.</p>
+        </div>
+      </section>
+
+      <section class="analysis-chart-panel" aria-labelledby="analysis-chart-title">
+        <div class="analysis-section-heading">
+          <div>
+            <p class="eyebrow">Kursentwicklung</p>
+            <h2 id="analysis-chart-title">Entwicklung seit Kauf</h2>
+          </div>
+          <span>Aktive Produkte werden gestapelt</span>
+        </div>
+        <div class="analysis-chart-wrap">
+          <svg
+            id="analysis-chart"
+            viewBox="0 0 1040 460"
+            role="img"
+            aria-labelledby="analysis-chart-title analysis-chart-description"
+          ></svg>
+        </div>
+        <div class="analysis-chart-legend" id="analysis-chart-legend"></div>
+        <p class="sr-only" id="analysis-chart-description" aria-live="polite"></p>
+      </section>
+
+      <section class="analysis-fundamentals" aria-labelledby="fundamentals-title">
+        <div class="analysis-section-heading">
+          <div>
+            <p class="eyebrow">Unternehmensdaten</p>
+            <h2 id="fundamentals-title">Fundamentalanalyse</h2>
+          </div>
+          <span>Letzte fünf Geschäftsjahre</span>
+        </div>
+        <div id="fundamentals-grid" class="fundamentals-grid"></div>
+      </section>
+    </main>
+
+    <dialog class="analysis-dialog login-dialog" id="analysis-login" aria-labelledby="analysis-login-title">
+      <form id="analysis-login-form" method="dialog" autocomplete="off">
+        <span class="login-mark" aria-hidden="true">R↗</span>
+        <p class="eyebrow">Geschützter Bereich</p>
+        <h1 id="analysis-login-title">Analyse öffnen</h1>
+        <p>Gib das Passwort ein, um die gespeicherten Wertpapierdaten auf diesem Gerät zu sehen.</p>
+        <label for="analysis-password">Passwort</label>
+        <input id="analysis-password" name="password" type="password" required autocomplete="current-password" />
+        <p class="dialog-error" id="analysis-login-error" aria-live="polite"></p>
+        <button class="analysis-primary-button" type="submit">Öffnen</button>
+        <a href="./index.html">Zurück zum Vergleich</a>
+      </form>
+    </dialog>
+
+    <dialog class="analysis-dialog add-dialog" id="analysis-add-dialog" aria-labelledby="analysis-add-title">
+      <form id="analysis-add-form" method="dialog" autocomplete="off">
+        <div class="dialog-heading">
+          <div><p class="eyebrow">Neues Produkt</p><h2 id="analysis-add-title">Wertpapier hinzufügen</h2></div>
+          <button class="dialog-close" id="analysis-add-close" type="button" aria-label="Fenster schließen">×</button>
+        </div>
+        <label for="analysis-wkn">WKN</label>
+        <input id="analysis-wkn" name="wkn" type="text" minlength="6" maxlength="6" required autocapitalize="characters" spellcheck="false" placeholder="z. B. 865985" />
+        <label for="analysis-purchase-date">Kaufdatum</label>
+        <input id="analysis-purchase-date" name="purchaseDate" type="date" required />
+        <label for="analysis-purchase-price">Kaufpreis je Anteil</label>
+        <div class="analysis-price-input">
+          <input id="analysis-purchase-price" name="purchasePrice" type="number" min="0.01" step="0.01" inputmode="decimal" required />
+          <span>€</span>
+        </div>
+        <p class="dialog-help">Die WKN wird zur Datenabfrage übertragen. Kaufdatum und Kaufpreis bleiben nur in deinem Browser.</p>
+        <p class="dialog-error" id="analysis-add-error" aria-live="polite"></p>
+        <div class="dialog-actions">
+          <button class="analysis-secondary-button" id="analysis-add-cancel" type="button">Abbrechen</button>
+          <button class="analysis-primary-button" id="analysis-add-submit" type="submit">Abrufen &amp; hinzufügen</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="./js/analysis.js?v=analysis1"></script>
+  </body>
+</html>

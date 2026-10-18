@@ -97,3 +97,9 @@ test("Eingaben setzen die Scrollposition innerhalb eines Schritts nicht zurück"
   assert.match(app, /renderedWizardStep !== state\.step/);
   assert.doesNotMatch(app, /function renderWizard\(\) \{\s*elements\.viewport\.scrollTop = 0/);
 });
+
+test("die bestehende Navigation ergänzt die Analyse als getrennten Bereich", async () => {
+  const html = await readFile(indexUrl, "utf8");
+
+  assert.match(html, /href="\.\/analyse\.html"[^>]*>Analyse<\/a>/);
+});

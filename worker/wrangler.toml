@@ -1,0 +1,6 @@
+name = "renditeatlas-analysis-api"
+main = "worker.js"
+compatibility_date = "2026-10-18"
+
+[vars]
+ALLOWED_ORIGINS = "https://itom-it-mech-eng-ger.github.io"
