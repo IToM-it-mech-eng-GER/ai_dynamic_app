@@ -123,6 +123,7 @@ test("liefert höchstens die letzten fünf Geschäftsjahre in zeitlicher Reihenf
 test("die Analyse bleibt eine eigenständige geschützte Seite", async () => {
   const html = await readFile(new URL("../analyse.html", import.meta.url), "utf8");
   const app = await readFile(new URL("../js/analysis.js", import.meta.url), "utf8");
+  const config = await readFile(new URL("../js/analysis-config.js", import.meta.url), "utf8");
 
   assert.match(html, /id="analysis-login"/);
   assert.match(html, /id="analysis-add-form"/);
@@ -130,6 +131,8 @@ test("die Analyse bleibt eine eigenständige geschützte Seite", async () => {
   assert.match(html, /id="analysis-chart"/);
   assert.match(html, /id="fundamentals-grid"/);
   assert.match(app, /crypto\.subtle\.digest/);
+  assert.match(app, /analysis-config\.js\?v=api1/);
+  assert.match(config, /https:\/\/renditeatlas-analysis-api\.itmeise\.workers\.dev/);
   assert.doesNotMatch(`${html}\n${app}`, /adminadmin/);
 });
 
