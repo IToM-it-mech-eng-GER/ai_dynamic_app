@@ -46,7 +46,7 @@
 .analysis-active-toggle input:checked + i { background: var(--product-color); }
 .analysis-active-toggle input:checked + i::after { transform: translateX(15px); }
 .analysis-active-toggle input:focus-visible + i { outline: 3px solid rgb(255 107 22 / 28%); outline-offset: 2px; }
-.analysis-product-card dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 18px 0; }
+.analysis-product-card dl { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 18px 0; }
 .analysis-product-card dl div { min-width: 0; border-radius: 10px; background: var(--soft); padding: 10px; }
 .analysis-product-card dt { color: var(--muted); font-size: 9px; }
 .analysis-product-card dd { overflow: hidden; margin: 4px 0 0; font-size: 12px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }

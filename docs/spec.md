@@ -69,7 +69,7 @@ Die Rechenlogik wird vor der Umsetzung mit Node-Tests beschrieben. Geprüft werd
 - Die App funktioniert ab 320 Pixel Breite und ist per Tastatur bedienbar.
 - Die App läuft unverändert auf GitHub Pages.
 - Die Analyse ist als eigene Seite erreichbar und verändert die bestehende Vergleichsrechnung nicht.
-- Aktien und ETFs lassen sich per WKN, Kaufdatum und Kaufpreis hinzufügen und einzeln aktivieren.
+- Aktien und ETFs lassen sich per WKN, Kaufdatum, Kaufpreis und Stückzahl hinzufügen und einzeln aktivieren.
 - Geladene Daten bleiben im Browser erhalten und der Vermittlungsdienst speichert Antworten 24 Stunden zwischen.
 - Aktive Kursverläufe werden transparent gestapelt; jede Reihe darf an ihrem eigenen letzten verfügbaren Datum enden.
 - Umsatz, operatives Ergebnis, freier Cashflow, EBITDA-Marge, Bilanzsumme, Kurs-Umsatz-Verhältnis, liquide Mittel und Schulden werden für bis zu fünf Geschäftsjahre dargestellt.

@@ -15,7 +15,7 @@
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23070f20'/%3E%3Cpath d='M15 43 27 31l8 7 14-17' fill='none' stroke='%23ff6b16' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
     />
     <link rel="stylesheet" href="./styles.css?v=fund-switch-graph1" />
-    <link rel="stylesheet" href="./analysis.css?v=analysis1" />
+    <link rel="stylesheet" href="./analysis.css?v=analysis2" />
   </head>
   <body class="analysis-body">
     <a class="skip-link" href="#analysis-main">Direkt zum Inhalt</a>
@@ -62,7 +62,7 @@
         <div class="analysis-empty" id="analysis-empty">
           <span aria-hidden="true">↗</span>
           <h3>Noch keine Wertpapiere</h3>
-          <p>Füge eine WKN, dein Kaufdatum und deinen damaligen Kaufpreis hinzu.</p>
+          <p>Füge eine WKN, dein Kaufdatum, den Kaufpreis und die Stückzahl hinzu.</p>
         </div>
       </section>
 
@@ -127,7 +127,12 @@
           <input id="analysis-purchase-price" name="purchasePrice" type="number" min="0.01" step="0.01" inputmode="decimal" required />
           <span>€</span>
         </div>
-        <p class="dialog-help">Die WKN wird zur Datenabfrage übertragen. Kaufdatum und Kaufpreis bleiben nur in deinem Browser.</p>
+        <label for="analysis-quantity">Menge Anteile / Aktien</label>
+        <div class="analysis-price-input">
+          <input id="analysis-quantity" name="quantity" type="number" min="0.000001" max="1000000000" step="0.000001" inputmode="decimal" value="1" required />
+          <span>Stück</span>
+        </div>
+        <p class="dialog-help">Die WKN wird zur Datenabfrage übertragen. Kaufdatum, Kaufpreis und Stückzahl bleiben nur in deinem Browser.</p>
         <p class="dialog-error" id="analysis-add-error" aria-live="polite"></p>
         <div class="dialog-actions">
           <button class="analysis-secondary-button" id="analysis-add-cancel" type="button">Abbrechen</button>
@@ -136,6 +141,6 @@
       </form>
     </dialog>
 
-    <script type="module" src="./js/analysis.js?v=analysis1"></script>
+    <script type="module" src="./js/analysis.js?v=analysis2"></script>
   </body>
 </html>

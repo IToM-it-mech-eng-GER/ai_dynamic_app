@@ -66,6 +66,7 @@ function normalizeFundamentals(reports) {
 
 export function createAnalysisSecurity(input = {}) {
   const purchasePrice = finiteNumber(input.purchasePrice, 0);
+  const quantity = finiteNumber(input.quantity, 1);
   const purchaseDate = isValidDate(input.purchaseDate) ? input.purchaseDate : "";
   const instrument = input.instrument ?? {};
 
@@ -74,6 +75,7 @@ export function createAnalysisSecurity(input = {}) {
     wkn: normalizeWkn(input.wkn),
     purchaseDate,
     purchasePrice: purchasePrice > 0 ? purchasePrice : 0,
+    quantity: quantity > 0 ? Math.min(quantity, 1_000_000_000) : 1,
     active: input.active !== false,
     color: cleanText(input.color, 16),
     fetchedAt: cleanText(input.fetchedAt, 32),
@@ -144,12 +146,12 @@ function buildAdjustedSeries(security) {
   const reference = nearestReferencePrice(prices, security.purchaseDate);
   if (!reference || security.purchasePrice <= 0 || !security.purchaseDate) return [];
 
-  const factor = security.purchasePrice / reference.close;
+  const factor = security.purchasePrice / reference.close * security.quantity;
   const laterPrices = prices
     .filter((entry) => entry.date > security.purchaseDate)
     .map((entry) => ({ date: entry.date, value: entry.close * factor }));
 
-  return [{ date: security.purchaseDate, value: security.purchasePrice }, ...laterPrices];
+  return [{ date: security.purchaseDate, value: security.purchasePrice * security.quantity }, ...laterPrices];
 }
 
 function valueAtDate(series, date) {

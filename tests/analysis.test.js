@@ -26,6 +26,7 @@ test("speichert Wertpapiere mit Kurs- und Fundamentaldaten lokal", () => {
     wkn: "865985",
     purchaseDate: "2020-01-03",
     purchasePrice: 100,
+    quantity: 3.5,
     fetchedAt: "2026-10-18T10:00:00.000Z",
     instrument: { name: "Apple Inc.", symbol: "AAPL" },
     prices: [{ date: "2020-01-03", close: 75 }],
@@ -37,6 +38,7 @@ test("speichert Wertpapiere mit Kurs- und Fundamentaldaten lokal", () => {
 
   assert.equal(ANALYSIS_STORAGE_KEY, "renditeatlas-analysis-v1");
   assert.equal(restored.securities[0].purchasePrice, 100);
+  assert.equal(restored.securities[0].quantity, 3.5);
   assert.equal(restored.securities[0].prices[0].close, 75);
   assert.equal(restored.securities[0].fundamentals[0].revenue, 1000);
 });
@@ -81,6 +83,36 @@ test("gestapelte Kursreihen enden am letzten vorhandenen Wert des jeweiligen Pro
   assert.equal(result.totals.at(-1).value, 240);
 });
 
+test("multipliziert den Kursverlauf mit der gekauften Stückzahl", () => {
+  const security = createAnalysisSecurity({
+    id: "one",
+    wkn: "865985",
+    purchaseDate: "2024-01-05",
+    purchasePrice: 100,
+    quantity: 2.5,
+    prices: [
+      { date: "2024-01-05", close: 100 },
+      { date: "2024-01-12", close: 120 },
+    ],
+  });
+
+  const result = buildStackedSeries([security]);
+
+  assert.equal(result.layers[0].points[0].value, 250);
+  assert.equal(result.layers[0].points.at(-1).value, 300);
+});
+
+test("behandelt ältere gespeicherte Produkte wie einen Anteil", () => {
+  const security = createAnalysisSecurity({
+    id: "one",
+    wkn: "865985",
+    purchaseDate: "2024-01-05",
+    purchasePrice: 100,
+  });
+
+  assert.equal(security.quantity, 1);
+});
+
 test("liefert höchstens die letzten fünf Geschäftsjahre in zeitlicher Reihenfolge", () => {
   const reports = [2020, 2021, 2022, 2023, 2024, 2025].map((year) => ({ year, revenue: year * 10 }));
   const selected = getFiveYearFundamentals(reports);
@@ -94,6 +126,7 @@ test("die Analyse bleibt eine eigenständige geschützte Seite", async () => {
 
   assert.match(html, /id="analysis-login"/);
   assert.match(html, /id="analysis-add-form"/);
+  assert.match(html, /id="analysis-quantity"/);
   assert.match(html, /id="analysis-chart"/);
   assert.match(html, /id="fundamentals-grid"/);
   assert.match(app, /crypto\.subtle\.digest/);

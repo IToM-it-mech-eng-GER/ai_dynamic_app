@@ -42,6 +42,7 @@ const elements = {
   wkn: document.querySelector("#analysis-wkn"),
   purchaseDate: document.querySelector("#analysis-purchase-date"),
   purchasePrice: document.querySelector("#analysis-purchase-price"),
+  quantity: document.querySelector("#analysis-quantity"),
   status: document.querySelector("#analysis-status"),
   products: document.querySelector("#analysis-products"),
   empty: document.querySelector("#analysis-empty"),
@@ -103,6 +104,10 @@ function formatMetric(value, format, currency) {
 function formatDate(value) {
   if (!value) return "–";
   return new Intl.DateTimeFormat("de-DE").format(new Date(`${value}T00:00:00Z`));
+}
+
+function formatQuantity(value) {
+  return new Intl.NumberFormat("de-DE", { maximumFractionDigits: 6 }).format(value);
 }
 
 function isFresh(security) {
@@ -172,6 +177,7 @@ function renderProducts() {
     [
       ["Kaufdatum", formatDate(security.purchaseDate)],
       ["Kaufpreis", formatMoney(security.purchasePrice)],
+      ["Anteile / Aktien", formatQuantity(security.quantity)],
       ["Letzter Kurs", security.prices.length ? formatMoney(security.prices.at(-1).close, false, security.instrument.currency) : "–"],
     ].forEach(([term, value]) => {
       const wrapper = document.createElement("div");
@@ -284,14 +290,15 @@ async function addSecurity(event) {
   elements.addError.textContent = "";
   const wkn = normalizeWkn(elements.wkn.value);
   const purchasePrice = Number(elements.purchasePrice.value);
+  const quantity = Number(elements.quantity.value);
   const purchaseDate = elements.purchaseDate.value;
 
   if (!wkn) {
     elements.addError.textContent = "Bitte eine gültige sechsstellige WKN eingeben.";
     return;
   }
-  if (!purchaseDate || !Number.isFinite(purchasePrice) || purchasePrice <= 0) {
-    elements.addError.textContent = "Bitte Kaufdatum und einen positiven Kaufpreis angeben.";
+  if (!purchaseDate || !Number.isFinite(purchasePrice) || purchasePrice <= 0 || !Number.isFinite(quantity) || quantity <= 0) {
+    elements.addError.textContent = "Bitte Kaufdatum, einen positiven Kaufpreis und eine positive Stückzahl angeben.";
     return;
   }
 
@@ -305,6 +312,7 @@ async function addSecurity(event) {
       wkn,
       purchaseDate,
       purchasePrice,
+      quantity,
       active: true,
       color: getAnalysisColor(state.securities.length),
       fetchedAt: cached?.fetchedAt || remote.fetchedAt || new Date().toISOString(),

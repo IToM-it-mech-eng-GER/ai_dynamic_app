@@ -4,7 +4,7 @@ Statische Single-Page-App zum Vergleich von bis zu drei ETF-Sparplänen. Persön
 
 Die Eingaben lassen sich ein- und ausklappen. Auf kleinen Bildschirmen können die sechs Seiten zusätzlich horizontal gewischt werden. Jeder Plan speichert seine sechs Seiten unabhängig. Für Privatdepots berechnet die App den nötigen Bruttoverkauf für eine gewünschte Nettoentnahme anhand von FIFO, Teilfreistellung, Sparer-Pauschbetrag, Rentenbesteuerung und Günstigerprüfung nach dem Rechtsstand 2026. Beim Rentendepot wird die lebenslange Rente mit dem altersabhängigen Ertragsanteil besteuert; Grundfreibetrag, gesetzliche Rente und Veranlagungsart werden berücksichtigt.
 
-Der getrennte Bereich **Analyse** verwaltet Aktien und ETFs über WKN, Kaufdatum und Kaufpreis. Abgerufene Kurs- und Fundamentaldaten werden im Browser gespeichert. Aktive Produkte werden in einem gemeinsamen transparenten Flächendiagramm dargestellt; acht Unternehmenskennzahlen zeigen bis zu fünf Geschäftsjahre. Für ETFs sind Fundamentaldaten häufig nicht verfügbar.
+Der getrennte Bereich **Analyse** verwaltet Aktien und ETFs über WKN, Kaufdatum, Kaufpreis und Stückzahl. Abgerufene Kurs- und Fundamentaldaten werden im Browser gespeichert. Aktive Produkte werden entsprechend ihrer gehaltenen Anteile in einem gemeinsamen transparenten Flächendiagramm dargestellt; acht Unternehmenskennzahlen zeigen bis zu fünf Geschäftsjahre. Für ETFs sind Fundamentaldaten häufig nicht verfügbar.
 
 ## Lokal starten
 
