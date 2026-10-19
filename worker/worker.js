@@ -66,6 +66,19 @@ function normalizeAlphaMatch(match) {
   };
 }
 
+export function directAlphaInstrument(figi = {}) {
+  const ticker = safeText(figi.ticker, 40).toUpperCase();
+  if (safeText(figi.exchCode, 12).toUpperCase() !== "US" || !ticker) return null;
+  return {
+    symbol: ticker,
+    name: safeText(figi.name),
+    type: safeText(figi.securityType2 || figi.securityType, 60),
+    region: "United States",
+    currency: "USD",
+    score: 1,
+  };
+}
+
 export function selectAlphaMatch(matches, figi = {}) {
   if (!Array.isArray(matches) || matches.length === 0) return null;
   const ticker = safeText(figi.ticker, 40).toUpperCase();
@@ -217,7 +230,8 @@ async function resolveAlphaInstrument(figi, apiKey) {
 async function loadAsset(wkn, env) {
   if (!env.ALPHA_VANTAGE_API_KEY) throw new Error("Der Marktdatenzugang ist nicht konfiguriert.");
   const figi = await mapWkn(wkn, env);
-  const alpha = await resolveAlphaInstrument(figi, env.ALPHA_VANTAGE_API_KEY);
+  const alpha = directAlphaInstrument(figi)
+    ?? await resolveAlphaInstrument(figi, env.ALPHA_VANTAGE_API_KEY);
   const weekly = await alphaRequest("TIME_SERIES_WEEKLY_ADJUSTED", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY);
   const prices = parseWeeklyPrices(weekly);
   if (!prices.length) throw new Error("Für dieses Wertpapier sind keine historischen Kurse verfügbar.");

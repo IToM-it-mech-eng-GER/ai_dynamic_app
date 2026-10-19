@@ -4,10 +4,27 @@ import test from "node:test";
 import {
   alphaProviderError,
   buildFundamentalHistory,
+  directAlphaInstrument,
   parseWeeklyPrices,
   selectAlphaMatch,
   validateWkn,
 } from "../worker/worker.js";
+
+test("nutzt eine eindeutige US-Börsenkennung ohne zusätzliche Anbietersuche", () => {
+  assert.deepEqual(directAlphaInstrument({
+    ticker: "PLTR",
+    name: "PALANTIR TECHNOLOGIES INC-A",
+    exchCode: "US",
+    securityType2: "Common Stock",
+  }), {
+    symbol: "PLTR",
+    name: "PALANTIR TECHNOLOGIES INC-A",
+    type: "Common Stock",
+    region: "United States",
+    currency: "USD",
+    score: 1,
+  });
+});
 
 test("unterscheidet Schlüssel-, Tarif- und Limitfehler des Marktdatenanbieters", () => {
   assert.match(
