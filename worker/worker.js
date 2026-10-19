@@ -7,6 +7,22 @@ function safeText(value, maxLength = 160) {
   return String(value ?? "").trim().slice(0, maxLength);
 }
 
+export function alphaProviderError(payload = {}) {
+  const message = safeText(payload.Note || payload.Information, 500);
+  const normalized = message.toLowerCase();
+  if (!normalized) return "";
+  if (/(invalid|missing|not valid).*(api\s*key|apikey)|(api\s*key|apikey).*(invalid|missing|not valid)/.test(normalized)) {
+    return "Der Alpha-Vantage-Schlüssel ist ungültig oder fehlt.";
+  }
+  if (/rate limit|call frequency|requests per day|calls per day|higher api call volume/.test(normalized)) {
+    return "Das tägliche Abruflimit des Marktdatenanbieters ist erreicht.";
+  }
+  if (/premium endpoint|premium api|premium membership/.test(normalized)) {
+    return "Diese Marktdaten benötigen einen kostenpflichtigen Zugang.";
+  }
+  return "Der Marktdatenanbieter hat die Anfrage abgelehnt.";
+}
+
 function numberOrNull(value) {
   if (value === null || value === undefined || value === "" || value === "None" || value === "-") return null;
   const number = Number(value);
@@ -178,7 +194,14 @@ async function alphaRequest(functionName, parameters, apiKey) {
   Object.entries(parameters).forEach(([key, value]) => url.searchParams.set(key, value));
   url.searchParams.set("apikey", apiKey);
   const payload = await fetchJson(url, { headers: { Accept: "application/json" } }, "Der Marktdatenanbieter");
-  if (payload.Note || payload.Information) throw new Error("Das tägliche Abruflimit des Marktdatenanbieters ist erreicht.");
+  const providerError = alphaProviderError(payload);
+  if (providerError) {
+    console.warn("Alpha Vantage rejected request", {
+      functionName,
+      message: safeText(payload.Note || payload.Information, 500),
+    });
+    throw new Error(providerError);
+  }
   if (payload["Error Message"]) throw new Error("Der Marktdatenanbieter kennt dieses Wertpapier nicht.");
   return payload;
 }

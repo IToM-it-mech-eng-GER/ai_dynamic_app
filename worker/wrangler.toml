@@ -3,4 +3,4 @@ main = "worker.js"
 compatibility_date = "2026-10-18"
 
 [vars]
-ALLOWED_ORIGINS = "https://itom-it-mech-eng-ger.github.io"
+ALLOWED_ORIGINS = "https://itom-it-mech-eng-ger.github.io,http://127.0.0.1:4177,http://localhost:4177"
