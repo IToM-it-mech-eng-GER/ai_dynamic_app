@@ -2,11 +2,31 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  alphaProviderError,
   buildFundamentalHistory,
   parseWeeklyPrices,
   selectAlphaMatch,
   validateWkn,
 } from "../worker/worker.js";
+
+test("unterscheidet Schlüssel-, Tarif- und Limitfehler des Marktdatenanbieters", () => {
+  assert.match(
+    alphaProviderError({ Information: "The parameter apikey is invalid or missing." }),
+    /Schlüssel ist ungültig/,
+  );
+  assert.match(
+    alphaProviderError({ Information: "This is a premium endpoint." }),
+    /kostenpflichtigen Zugang/,
+  );
+  assert.match(
+    alphaProviderError({ Note: "Our standard API rate limit is 25 requests per day." }),
+    /tägliche Abruflimit/,
+  );
+  assert.match(
+    alphaProviderError({ Information: "Please contact premium@example.com if you are targeting a higher API call volume." }),
+    /tägliche Abruflimit/,
+  );
+});
 
 test("der Abrufdienst akzeptiert nur eindeutige WKN", () => {
   assert.equal(validateWkn("865985"), "865985");
