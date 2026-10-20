@@ -66,6 +66,19 @@ function normalizeAlphaMatch(match) {
   };
 }
 
+export function directAlphaInstrument(figi = {}) {
+  const ticker = safeText(figi.ticker, 40).toUpperCase();
+  if (safeText(figi.exchCode, 12).toUpperCase() !== "US" || !ticker) return null;
+  return {
+    symbol: ticker,
+    name: safeText(figi.name),
+    type: safeText(figi.securityType2 || figi.securityType, 60),
+    region: "United States",
+    currency: "USD",
+    score: 1,
+  };
+}
+
 export function selectAlphaMatch(matches, figi = {}) {
   if (!Array.isArray(matches) || matches.length === 0) return null;
   const ticker = safeText(figi.ticker, 40).toUpperCase();
@@ -188,7 +201,27 @@ async function mapWkn(wkn, env) {
   return instrument;
 }
 
-async function alphaRequest(functionName, parameters, apiKey) {
+function alphaCacheKey(functionName, parameters) {
+  const url = new URL("https://analysis-cache.invalid/provider/alpha");
+  url.searchParams.set("function", functionName);
+  Object.entries(parameters)
+    .sort(([first], [second]) => first.localeCompare(second))
+    .forEach(([key, value]) => url.searchParams.set(key, value));
+  return new Request(url);
+}
+
+export async function alphaRequest(functionName, parameters, apiKey, cache) {
+  const cacheKey = alphaCacheKey(functionName, parameters);
+  let cached = null;
+  if (cache) {
+    try {
+      cached = await cache.match(cacheKey);
+    } catch {
+      console.warn("Alpha Vantage cache could not be read", { functionName });
+    }
+  }
+  if (cached) return cached.json();
+
   const url = new URL(ALPHA_VANTAGE_URL);
   url.searchParams.set("function", functionName);
   Object.entries(parameters).forEach(([key, value]) => url.searchParams.set(key, value));
@@ -198,36 +231,49 @@ async function alphaRequest(functionName, parameters, apiKey) {
   if (providerError) {
     console.warn("Alpha Vantage rejected request", {
       functionName,
-      message: safeText(payload.Note || payload.Information, 500),
+      reason: providerError,
     });
     throw new Error(providerError);
   }
   if (payload["Error Message"]) throw new Error("Der Marktdatenanbieter kennt dieses Wertpapier nicht.");
+  if (cache) {
+    try {
+      await cache.put(cacheKey, new Response(JSON.stringify(payload), {
+        headers: {
+          "Cache-Control": `public, max-age=${CACHE_SECONDS}`,
+          "Content-Type": "application/json; charset=utf-8",
+        },
+      }));
+    } catch {
+      console.warn("Alpha Vantage response could not be cached", { functionName });
+    }
+  }
   return payload;
 }
 
-async function resolveAlphaInstrument(figi, apiKey) {
+async function resolveAlphaInstrument(figi, apiKey, cache) {
   const keywords = safeText(figi.ticker || figi.name, 120);
-  const search = await alphaRequest("SYMBOL_SEARCH", { keywords }, apiKey);
+  const search = await alphaRequest("SYMBOL_SEARCH", { keywords }, apiKey, cache);
   const match = selectAlphaMatch(search.bestMatches, figi);
   if (!match) throw new Error("Für dieses Wertpapier wurde kein kompatibler Kursdatenbestand gefunden.");
   return match;
 }
 
-async function loadAsset(wkn, env) {
+async function loadAsset(wkn, env, cache) {
   if (!env.ALPHA_VANTAGE_API_KEY) throw new Error("Der Marktdatenzugang ist nicht konfiguriert.");
   const figi = await mapWkn(wkn, env);
-  const alpha = await resolveAlphaInstrument(figi, env.ALPHA_VANTAGE_API_KEY);
-  const weekly = await alphaRequest("TIME_SERIES_WEEKLY_ADJUSTED", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY);
+  const alpha = directAlphaInstrument(figi)
+    ?? await resolveAlphaInstrument(figi, env.ALPHA_VANTAGE_API_KEY, cache);
+  const weekly = await alphaRequest("TIME_SERIES_WEEKLY_ADJUSTED", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache);
   const prices = parseWeeklyPrices(weekly);
   if (!prices.length) throw new Error("Für dieses Wertpapier sind keine historischen Kurse verfügbar.");
 
   let fundamentals = [];
   if (!isFundLike(figi, alpha)) {
     const [income, balance, cashFlow] = await Promise.all([
-      alphaRequest("INCOME_STATEMENT", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY),
-      alphaRequest("BALANCE_SHEET", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY),
-      alphaRequest("CASH_FLOW", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY),
+      alphaRequest("INCOME_STATEMENT", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache),
+      alphaRequest("BALANCE_SHEET", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache),
+      alphaRequest("CASH_FLOW", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache),
     ]);
     fundamentals = buildFundamentalHistory(
       income.annualReports,
@@ -301,7 +347,7 @@ async function handleRequest(request, env, context) {
   }
 
   try {
-    const data = await loadAsset(wkn, env);
+    const data = await loadAsset(wkn, env, cache);
     const cacheResponse = new Response(JSON.stringify(data), {
       status: 200,
       headers: { "Cache-Control": `public, max-age=${CACHE_SECONDS}`, "Content-Type": "application/json" },

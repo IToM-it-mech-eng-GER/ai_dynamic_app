@@ -2,12 +2,88 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  alphaRequest,
   alphaProviderError,
   buildFundamentalHistory,
+  directAlphaInstrument,
   parseWeeklyPrices,
   selectAlphaMatch,
   validateWkn,
 } from "../worker/worker.js";
+
+test("nutzt eine eindeutige US-Börsenkennung ohne zusätzliche Anbietersuche", () => {
+  assert.deepEqual(directAlphaInstrument({
+    ticker: "PLTR",
+    name: "PALANTIR TECHNOLOGIES INC-A",
+    exchCode: "US",
+    securityType2: "Common Stock",
+  }), {
+    symbol: "PLTR",
+    name: "PALANTIR TECHNOLOGIES INC-A",
+    type: "Common Stock",
+    region: "United States",
+    currency: "USD",
+    score: 1,
+  });
+});
+
+test("verwendet erfolgreich geladene Anbieterdaten bei einem erneuten Abruf wieder", async () => {
+  const originalFetch = globalThis.fetch;
+  const requests = [];
+  const storedResponses = new Map();
+  const cache = {
+    async match(request) {
+      const response = storedResponses.get(request.url);
+      return response?.clone();
+    },
+    async put(request, response) {
+      storedResponses.set(request.url, response.clone());
+    },
+  };
+  globalThis.fetch = async (url) => {
+    requests.push(String(url));
+    return new Response(JSON.stringify({ "Weekly Time Series": {} }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  try {
+    await alphaRequest("TIME_SERIES_WEEKLY", { symbol: "PLTR" }, "geheimer-schluessel", cache);
+    await alphaRequest("TIME_SERIES_WEEKLY", { symbol: "PLTR" }, "geheimer-schluessel", cache);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.equal(requests.length, 1);
+  assert.equal(storedResponses.size, 1);
+  assert.doesNotMatch([...storedResponses.keys()][0], /geheimer-schluessel/);
+});
+
+test("ruft den Anbieter auch bei einem nicht lesbaren Zwischenspeicher ab", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalWarn = console.warn;
+  let requestCount = 0;
+  console.warn = () => {};
+  globalThis.fetch = async () => {
+    requestCount += 1;
+    return new Response(JSON.stringify({ "Weekly Time Series": {} }), { status: 200 });
+  };
+
+  try {
+    await alphaRequest("TIME_SERIES_WEEKLY", { symbol: "PLTR" }, "geheimer-schluessel", {
+      async match() {
+        throw new Error("Zwischenspeicher nicht erreichbar");
+      },
+      async put() {},
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.warn = originalWarn;
+  }
+
+  assert.equal(requestCount, 1);
+});
 
 test("unterscheidet Schlüssel-, Tarif- und Limitfehler des Marktdatenanbieters", () => {
   assert.match(
