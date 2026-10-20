@@ -60,6 +60,31 @@ test("verwendet erfolgreich geladene Anbieterdaten bei einem erneuten Abruf wied
   assert.doesNotMatch([...storedResponses.keys()][0], /geheimer-schluessel/);
 });
 
+test("ruft den Anbieter auch bei einem nicht lesbaren Zwischenspeicher ab", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalWarn = console.warn;
+  let requestCount = 0;
+  console.warn = () => {};
+  globalThis.fetch = async () => {
+    requestCount += 1;
+    return new Response(JSON.stringify({ "Weekly Time Series": {} }), { status: 200 });
+  };
+
+  try {
+    await alphaRequest("TIME_SERIES_WEEKLY", { symbol: "PLTR" }, "geheimer-schluessel", {
+      async match() {
+        throw new Error("Zwischenspeicher nicht erreichbar");
+      },
+      async put() {},
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.warn = originalWarn;
+  }
+
+  assert.equal(requestCount, 1);
+});
+
 test("unterscheidet Schlüssel-, Tarif- und Limitfehler des Marktdatenanbieters", () => {
   assert.match(
     alphaProviderError({ Information: "The parameter apikey is invalid or missing." }),

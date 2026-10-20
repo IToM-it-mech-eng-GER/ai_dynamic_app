@@ -212,7 +212,14 @@ function alphaCacheKey(functionName, parameters) {
 
 export async function alphaRequest(functionName, parameters, apiKey, cache) {
   const cacheKey = alphaCacheKey(functionName, parameters);
-  const cached = cache ? await cache.match(cacheKey) : null;
+  let cached = null;
+  if (cache) {
+    try {
+      cached = await cache.match(cacheKey);
+    } catch {
+      console.warn("Alpha Vantage cache could not be read", { functionName });
+    }
+  }
   if (cached) return cached.json();
 
   const url = new URL(ALPHA_VANTAGE_URL);
@@ -224,7 +231,7 @@ export async function alphaRequest(functionName, parameters, apiKey, cache) {
   if (providerError) {
     console.warn("Alpha Vantage rejected request", {
       functionName,
-      message: safeText(payload.Note || payload.Information, 500),
+      reason: providerError,
     });
     throw new Error(providerError);
   }
