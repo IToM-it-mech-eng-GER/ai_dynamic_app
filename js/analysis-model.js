@@ -215,17 +215,38 @@ function nearestReferencePrice(prices, purchaseDate) {
   }, null);
 }
 
+function tenYearsBefore(date) {
+  const value = new Date(`${date}T00:00:00Z`);
+  value.setUTCFullYear(value.getUTCFullYear() - 10);
+  return value.toISOString().slice(0, 10);
+}
+
+function lastPricePerQuarter(prices, startDate) {
+  const byQuarter = new Map();
+  prices.forEach((price) => {
+    if (price.date <= startDate) return;
+    const month = Number(price.date.slice(5, 7));
+    const quarter = Math.ceil(month / 3);
+    byQuarter.set(`${price.date.slice(0, 4)}-${quarter}`, price);
+  });
+  return [...byQuarter.values()];
+}
+
 function buildAdjustedSeries(security) {
   const prices = normalizePrices(security.prices);
   const reference = nearestReferencePrice(prices, security.purchaseDate);
   if (!reference || security.purchasePrice <= 0 || !security.purchaseDate) return [];
 
   const factor = security.purchasePrice / reference.close * security.quantity;
-  const laterPrices = prices
-    .filter((entry) => entry.date > security.purchaseDate)
+  const windowStart = tenYearsBefore(prices.at(-1).date);
+  const startDate = security.purchaseDate > windowStart ? security.purchaseDate : windowStart;
+  const laterPrices = lastPricePerQuarter(prices, startDate)
     .map((entry) => ({ date: entry.date, value: entry.close * factor }));
 
-  return [{ date: security.purchaseDate, value: security.purchasePrice * security.quantity }, ...laterPrices];
+  const purchasePoint = security.purchaseDate >= windowStart
+    ? [{ date: security.purchaseDate, value: security.purchasePrice * security.quantity }]
+    : [];
+  return [...purchasePoint, ...laterPrices];
 }
 
 function valueAtDate(series, date) {

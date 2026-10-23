@@ -156,6 +156,38 @@ test("multipliziert den Kursverlauf mit der gekauften Stückzahl", () => {
   assert.equal(result.layers[0].points.at(-1).value, 300);
 });
 
+test("zeigt höchstens zehn Jahre und nur den letzten Kurswert je Quartal", () => {
+  const security = createAnalysisSecurity({
+    id: "one",
+    wkn: "865985",
+    purchaseDate: "2015-01-01",
+    purchasePrice: 100,
+    prices: [
+      { date: "2015-01-02", close: 100 },
+      { date: "2016-09-30", close: 108 },
+      { date: "2016-10-21", close: 110 },
+      { date: "2016-12-30", close: 112 },
+      { date: "2017-01-06", close: 113 },
+      { date: "2017-03-31", close: 114 },
+      { date: "2017-04-07", close: 115 },
+      { date: "2026-07-03", close: 200 },
+      { date: "2026-09-25", close: 210 },
+      { date: "2026-10-02", close: 220 },
+    ],
+  });
+
+  const result = buildStackedSeries([security]);
+
+  assert.deepEqual(result.dates, [
+    "2016-12-30",
+    "2017-03-31",
+    "2017-04-07",
+    "2026-09-25",
+    "2026-10-02",
+  ]);
+  assert.deepEqual(result.layers[0].points.map((point) => point.value), [112, 114, 115, 210, 220]);
+});
+
 test("behandelt ältere gespeicherte Produkte wie einen Anteil", () => {
   const security = createAnalysisSecurity({
     id: "one",

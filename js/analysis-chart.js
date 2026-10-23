@@ -1,4 +1,4 @@
-import { buildStackedSeries, getAnalysisColorIndex } from "./analysis-model.js";
+import { buildStackedSeries, getAnalysisColorIndex } from "./analysis-model.js?v=quarterly1";
 
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 const WIDTH = 1040;

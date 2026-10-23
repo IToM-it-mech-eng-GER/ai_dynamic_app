@@ -1,5 +1,5 @@
 import { ANALYSIS_API_BASE_URL } from "./analysis-config.js?v=api1";
-import { renderAnalysisChart } from "./analysis-chart.js";
+import { renderAnalysisChart } from "./analysis-chart.js?v=quarterly1";
 import {
   ANALYSIS_STORAGE_KEY,
   createAnalysisSecurity,
@@ -15,7 +15,7 @@ import {
   setSecurityActive,
   upsertAnalysisFundamental,
   upsertAnalysisPrice,
-} from "./analysis-model.js";
+} from "./analysis-model.js?v=quarterly1";
 
 const PASSWORD_HASH = "d82494f05d6917ba02f7aaa29689ccb444bb73f20380876cb05d1f37537b7892";
 const CACHE_AGE_MS = 24 * 60 * 60 * 1000;
