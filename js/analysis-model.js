@@ -5,6 +5,7 @@ const WKN_PATTERN = /^[A-HJ-NP-Z0-9]{6}$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function finiteNumber(value, fallback = null) {
+  if (value === null || value === undefined || value === "") return fallback;
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
 }
@@ -36,32 +37,38 @@ function normalizePrices(prices) {
   return [...byDate.values()].sort((first, second) => first.date.localeCompare(second.date));
 }
 
+const FUNDAMENTAL_FIELDS = [
+  "revenue",
+  "operatingIncome",
+  "freeCashFlow",
+  "ebitdaMargin",
+  "totalAssets",
+  "priceToSales",
+  "cash",
+  "debt",
+];
+
 function normalizeFundamentals(reports) {
   if (!Array.isArray(reports)) return [];
 
-  const fields = [
-    "revenue",
-    "operatingIncome",
-    "freeCashFlow",
-    "ebitdaMargin",
-    "totalAssets",
-    "priceToSales",
-    "cash",
-    "debt",
-  ];
   const byYear = new Map();
 
   reports.forEach((entry) => {
     const year = Math.trunc(finiteNumber(entry?.year, 0));
     if (year < 1900 || year > 2200) return;
     const normalized = { year };
-    fields.forEach((field) => {
+    FUNDAMENTAL_FIELDS.forEach((field) => {
       normalized[field] = finiteNumber(entry?.[field]);
     });
     byYear.set(year, normalized);
   });
 
   return [...byYear.values()].sort((first, second) => first.year - second.year);
+}
+
+function normalizeWarnings(warnings) {
+  if (!Array.isArray(warnings)) return [];
+  return [...new Set(warnings.map((warning) => cleanText(warning, 240)).filter(Boolean))].slice(0, 12);
 }
 
 export function createAnalysisSecurity(input = {}) {
@@ -88,7 +95,74 @@ export function createAnalysisSecurity(input = {}) {
     },
     prices: normalizePrices(input.prices),
     fundamentals: normalizeFundamentals(input.fundamentals),
+    warnings: normalizeWarnings(input.warnings),
   };
+}
+
+function mergeInstrument(existing, incoming = {}) {
+  return Object.fromEntries(Object.keys(existing).map((key) => [
+    key,
+    cleanText(incoming[key], key === "name" ? 120 : 64) || existing[key],
+  ]));
+}
+
+function mergeFundamentals(existingReports, incomingReports) {
+  const byYear = new Map(normalizeFundamentals(existingReports).map((report) => [report.year, report]));
+  normalizeFundamentals(incomingReports).forEach((report) => {
+    const merged = { ...(byYear.get(report.year) ?? { year: report.year }) };
+    FUNDAMENTAL_FIELDS.forEach((field) => {
+      if (Number.isFinite(report[field])) merged[field] = report[field];
+      else if (!(field in merged)) merged[field] = null;
+    });
+    byYear.set(report.year, merged);
+  });
+  return [...byYear.values()].sort((first, second) => first.year - second.year);
+}
+
+export function mergeAnalysisSecurityData(existing, incoming = {}) {
+  const current = createAnalysisSecurity(existing);
+  return createAnalysisSecurity({
+    ...current,
+    fetchedAt: cleanText(incoming.fetchedAt, 32) || current.fetchedAt,
+    instrument: mergeInstrument(current.instrument, incoming.instrument),
+    prices: [...current.prices, ...(Array.isArray(incoming.prices) ? incoming.prices : [])],
+    fundamentals: mergeFundamentals(current.fundamentals, incoming.fundamentals),
+    warnings: Array.isArray(incoming.warnings) ? incoming.warnings : current.warnings,
+  });
+}
+
+export function upsertAnalysisPrice(security, price) {
+  const current = createAnalysisSecurity(security);
+  return createAnalysisSecurity({
+    ...current,
+    prices: [...current.prices.filter((entry) => entry.date !== price?.date), price],
+  });
+}
+
+export function removeAnalysisPrice(security, date) {
+  const current = createAnalysisSecurity(security);
+  return createAnalysisSecurity({
+    ...current,
+    prices: current.prices.filter((entry) => entry.date !== date),
+  });
+}
+
+export function upsertAnalysisFundamental(security, report) {
+  const current = createAnalysisSecurity(security);
+  const year = Math.trunc(finiteNumber(report?.year, 0));
+  return createAnalysisSecurity({
+    ...current,
+    fundamentals: [...current.fundamentals.filter((entry) => entry.year !== year), report],
+  });
+}
+
+export function removeAnalysisFundamental(security, year) {
+  const current = createAnalysisSecurity(security);
+  const normalizedYear = Math.trunc(finiteNumber(year, 0));
+  return createAnalysisSecurity({
+    ...current,
+    fundamentals: current.fundamentals.filter((entry) => entry.year !== normalizedYear),
+  });
 }
 
 export function serializeAnalysisState(state) {

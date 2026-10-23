@@ -6,6 +6,7 @@ import {
   getAnalysisColor,
   getAnalysisColorIndex,
   getFiveYearFundamentals,
+  mergeAnalysisSecurityData,
   normalizeWkn,
   readAnalysisState,
   serializeAnalysisState,
@@ -116,7 +117,12 @@ function isFresh(security) {
 }
 
 function findCachedSecurity(wkn) {
-  return state.securities.find((security) => security.wkn === wkn && isFresh(security) && security.prices.length > 0);
+  return state.securities.find((security) =>
+    security.wkn === wkn
+    && isFresh(security)
+    && security.prices.length > 0
+    && security.warnings.length === 0,
+  );
 }
 
 async function fetchAsset(wkn) {
@@ -196,13 +202,24 @@ function renderProducts() {
       createButton("Entfernen", "analysis-card-button danger", "remove", security.id),
     );
 
+    const dataSummary = document.createElement("p");
+    dataSummary.className = "analysis-data-summary";
+    dataSummary.textContent = `${security.prices.length} Kurswerte · ${security.fundamentals.length} Geschäftsjahre`;
+
+    const warning = document.createElement("p");
+    warning.className = "analysis-data-warning";
+    warning.hidden = security.warnings.length === 0;
+    warning.textContent = security.warnings.length
+      ? `Teildaten gespeichert: ${security.warnings.join(" ")}`
+      : "";
+
     const updated = document.createElement("p");
     updated.className = "analysis-updated";
     updated.textContent = security.fetchedAt
       ? `Datenstand ${new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeStyle: "short" }).format(new Date(security.fetchedAt))}`
       : "Noch kein Datenabruf";
 
-    card.append(top, meta, actions, updated);
+    card.append(top, meta, dataSummary, warning, actions, updated);
     elements.products.append(card);
   });
 }
@@ -319,13 +336,21 @@ async function addSecurity(event) {
       instrument: remote.instrument,
       prices: remote.prices,
       fundamentals: remote.fundamentals,
+      warnings: remote.warnings,
     });
     state.securities.push(security);
     saveState();
     render();
     elements.addForm.reset();
     closeDialog(elements.addDialog);
-    setStatus(cached ? "Gespeicherte Daten wurden wiederverwendet." : "Wertpapierdaten wurden geladen und lokal gespeichert.", "success");
+    setStatus(
+      cached
+        ? "Gespeicherte Daten wurden wiederverwendet."
+        : security.warnings.length
+          ? "Alle verfügbaren Teildaten wurden lokal gespeichert. Fehlende Werte können ergänzt werden."
+          : "Wertpapierdaten wurden geladen und lokal gespeichert.",
+      "success",
+    );
   } catch (error) {
     elements.addError.textContent = error instanceof Error ? error.message : "Die Daten konnten nicht geladen werden.";
   } finally {
@@ -339,17 +364,19 @@ async function refreshSecurity(security) {
   try {
     const remote = await fetchAsset(security.wkn);
     state.securities = state.securities.map((entry) => entry.id === security.id
-      ? createAnalysisSecurity({
-          ...entry,
+      ? mergeAnalysisSecurityData(entry, {
+          ...remote,
           fetchedAt: remote.fetchedAt || new Date().toISOString(),
-          instrument: remote.instrument,
-          prices: remote.prices,
-          fundamentals: remote.fundamentals,
         })
       : entry);
     saveState();
     render();
-    setStatus("Die Wertpapierdaten wurden aktualisiert.", "success");
+    setStatus(
+      remote.warnings?.length
+        ? "Neue Teildaten wurden ergänzt. Fehlende Werte bleiben zur Bearbeitung offen."
+        : "Die Wertpapierdaten wurden aktualisiert.",
+      "success",
+    );
   } catch (error) {
     setStatus(error instanceof Error ? error.message : "Die Aktualisierung ist fehlgeschlagen.", "error");
   }

@@ -50,6 +50,8 @@
 .analysis-product-card dl div { min-width: 0; border-radius: 10px; background: var(--soft); padding: 10px; }
 .analysis-product-card dt { color: var(--muted); font-size: 9px; }
 .analysis-product-card dd { overflow: hidden; margin: 4px 0 0; font-size: 12px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.analysis-data-summary { margin: 0 0 10px; color: var(--muted); font-size: 10px; font-weight: 700; }
+.analysis-data-warning { margin: 0 0 12px; border-left: 3px solid var(--accent); padding: 7px 9px; background: #fff7f1; color: #8b4519; font-size: 10px; line-height: 1.45; }
 .analysis-product-actions { gap: 8px; }
 .analysis-card-button, .analysis-secondary-button { border: 1px solid var(--line); background: #fff; padding: 0 13px; }
 .analysis-card-button { min-height: 35px; font-size: 10px; }

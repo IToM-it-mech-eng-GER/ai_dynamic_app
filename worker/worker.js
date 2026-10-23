@@ -259,26 +259,79 @@ async function resolveAlphaInstrument(figi, apiKey, cache) {
   return match;
 }
 
-async function loadAsset(wkn, env, cache) {
+function errorMessage(error) {
+  return error instanceof Error ? error.message : "Die Daten konnten noch nicht geladen werden.";
+}
+
+async function capturePartial(label, request, warnings) {
+  try {
+    return await request();
+  } catch (error) {
+    warnings.push(`${label}: ${errorMessage(error)}`);
+    return null;
+  }
+}
+
+export async function loadAsset(wkn, env, cache) {
   if (!env.ALPHA_VANTAGE_API_KEY) throw new Error("Der Marktdatenzugang ist nicht konfiguriert.");
   const figi = await mapWkn(wkn, env);
+  const warnings = [];
   const alpha = directAlphaInstrument(figi)
-    ?? await resolveAlphaInstrument(figi, env.ALPHA_VANTAGE_API_KEY, cache);
-  const weekly = await alphaRequest("TIME_SERIES_WEEKLY_ADJUSTED", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache);
+    ?? await capturePartial(
+      "Wertpapierkennung",
+      () => resolveAlphaInstrument(figi, env.ALPHA_VANTAGE_API_KEY, cache),
+      warnings,
+    );
+
+  const instrument = {
+    name: alpha?.name || safeText(figi.name),
+    symbol: alpha?.symbol || safeText(figi.ticker, 40),
+    type: alpha?.type || safeText(figi.securityType2 || figi.securityType),
+    currency: alpha?.currency || safeText(figi.currency, 12),
+    exchange: alpha?.region || safeText(figi.exchCode, 60),
+  };
+
+  if (!alpha?.symbol) {
+    return {
+      wkn,
+      fetchedAt: new Date().toISOString(),
+      instrument,
+      prices: [],
+      fundamentals: [],
+      warnings,
+      partial: true,
+    };
+  }
+
+  const weekly = await capturePartial(
+    "Kursdaten",
+    () => alphaRequest("TIME_SERIES_WEEKLY_ADJUSTED", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache),
+    warnings,
+  );
   const prices = parseWeeklyPrices(weekly);
-  if (!prices.length) throw new Error("Für dieses Wertpapier sind keine historischen Kurse verfügbar.");
+  if (weekly && !prices.length) warnings.push("Kursdaten: Für dieses Wertpapier sind keine historischen Kurse verfügbar.");
 
   let fundamentals = [];
   if (!isFundLike(figi, alpha)) {
-    const [income, balance, cashFlow] = await Promise.all([
-      alphaRequest("INCOME_STATEMENT", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache),
-      alphaRequest("BALANCE_SHEET", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache),
-      alphaRequest("CASH_FLOW", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache),
-    ]);
+    const income = await capturePartial(
+      "Ergebnisdaten",
+      () => alphaRequest("INCOME_STATEMENT", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache),
+      warnings,
+    );
+    const balance = await capturePartial(
+      "Bilanzdaten",
+      () => alphaRequest("BALANCE_SHEET", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache),
+      warnings,
+    );
+    const cashFlow = await capturePartial(
+      "Cashflow-Daten",
+      () => alphaRequest("CASH_FLOW", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache),
+      warnings,
+    );
     fundamentals = buildFundamentalHistory(
-      income.annualReports,
-      balance.annualReports,
-      cashFlow.annualReports,
+      income?.annualReports,
+      balance?.annualReports,
+      cashFlow?.annualReports,
       prices,
     );
   }
@@ -286,15 +339,11 @@ async function loadAsset(wkn, env, cache) {
   return {
     wkn,
     fetchedAt: new Date().toISOString(),
-    instrument: {
-      name: alpha.name || safeText(figi.name),
-      symbol: alpha.symbol,
-      type: alpha.type || safeText(figi.securityType2 || figi.securityType),
-      currency: alpha.currency,
-      exchange: alpha.region,
-    },
+    instrument,
     prices,
     fundamentals,
+    warnings,
+    partial: warnings.length > 0,
   };
 }
 
@@ -348,12 +397,14 @@ async function handleRequest(request, env, context) {
 
   try {
     const data = await loadAsset(wkn, env, cache);
-    const cacheResponse = new Response(JSON.stringify(data), {
-      status: 200,
-      headers: { "Cache-Control": `public, max-age=${CACHE_SECONDS}`, "Content-Type": "application/json" },
-    });
-    context.waitUntil(cache.put(cacheKey, cacheResponse));
-    return jsonResponse(data, 200, origin, `public, max-age=${CACHE_SECONDS}`);
+    if (!data.partial) {
+      const cacheResponse = new Response(JSON.stringify(data), {
+        status: 200,
+        headers: { "Cache-Control": `public, max-age=${CACHE_SECONDS}`, "Content-Type": "application/json" },
+      });
+      context.waitUntil(cache.put(cacheKey, cacheResponse));
+    }
+    return jsonResponse(data, 200, origin, data.partial ? "no-store" : `public, max-age=${CACHE_SECONDS}`);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Die Wertpapierdaten konnten nicht geladen werden.";
     return jsonResponse({ error: message }, 502, origin);

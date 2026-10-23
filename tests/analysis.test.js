@@ -7,10 +7,15 @@ import {
   buildStackedSeries,
   createAnalysisSecurity,
   getFiveYearFundamentals,
+  mergeAnalysisSecurityData,
   normalizeWkn,
+  removeAnalysisFundamental,
+  removeAnalysisPrice,
   readAnalysisState,
   serializeAnalysisState,
   setSecurityActive,
+  upsertAnalysisFundamental,
+  upsertAnalysisPrice,
 } from "../js/analysis-model.js";
 
 test("akzeptiert gültige WKN und verwirft mehrdeutige Zeichen", () => {
@@ -41,6 +46,55 @@ test("speichert Wertpapiere mit Kurs- und Fundamentaldaten lokal", () => {
   assert.equal(restored.securities[0].quantity, 3.5);
   assert.equal(restored.securities[0].prices[0].close, 75);
   assert.equal(restored.securities[0].fundamentals[0].revenue, 1000);
+});
+
+test("bewahrt erhaltene Teildaten und ergänzt spätere Abrufe ohne Datenverlust", () => {
+  const existing = createAnalysisSecurity({
+    id: "security-1",
+    wkn: "865985",
+    purchaseDate: "2024-01-05",
+    purchasePrice: 100,
+    instrument: { name: "Apple Inc.", symbol: "AAPL", currency: "USD" },
+    prices: [{ date: "2024-01-05", close: 185 }],
+    fundamentals: [{ year: 2025, revenue: 1000, totalAssets: 4000 }],
+  });
+
+  const merged = mergeAnalysisSecurityData(existing, {
+    fetchedAt: "2026-10-23T10:00:00.000Z",
+    instrument: { name: "Apple Inc.", symbol: "AAPL", currency: "USD" },
+    prices: [{ date: "2024-01-12", close: 190 }],
+    fundamentals: [{ year: 2025, revenue: 1200, totalAssets: null }],
+    warnings: ["Bilanzdaten konnten noch nicht geladen werden."],
+  });
+
+  assert.deepEqual(merged.prices, [
+    { date: "2024-01-05", close: 185 },
+    { date: "2024-01-12", close: 190 },
+  ]);
+  assert.equal(merged.fundamentals[0].revenue, 1200);
+  assert.equal(merged.fundamentals[0].totalAssets, 4000);
+  assert.deepEqual(merged.warnings, ["Bilanzdaten konnten noch nicht geladen werden."]);
+});
+
+test("einzelne Kurs- und Fundamentaldaten lassen sich manuell ergänzen und entfernen", () => {
+  let security = createAnalysisSecurity({
+    id: "security-1",
+    wkn: "865985",
+    purchaseDate: "2024-01-05",
+    purchasePrice: 100,
+  });
+
+  security = upsertAnalysisPrice(security, { date: "2025-01-03", close: 210.5 });
+  security = upsertAnalysisFundamental(security, { year: 2025, revenue: 1000, debt: 250 });
+  assert.deepEqual(security.prices, [{ date: "2025-01-03", close: 210.5 }]);
+  assert.equal(security.fundamentals[0].revenue, 1000);
+  assert.equal(security.fundamentals[0].debt, 250);
+  assert.equal(security.fundamentals[0].cash, null);
+
+  security = removeAnalysisPrice(security, "2025-01-03");
+  security = removeAnalysisFundamental(security, 2025);
+  assert.deepEqual(security.prices, []);
+  assert.deepEqual(security.fundamentals, []);
 });
 
 test("schaltet nur das gewählte Wertpapier aktiv", () => {

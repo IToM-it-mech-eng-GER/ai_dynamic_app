@@ -6,10 +6,53 @@ import {
   alphaProviderError,
   buildFundamentalHistory,
   directAlphaInstrument,
+  loadAsset,
   parseWeeklyPrices,
   selectAlphaMatch,
   validateWkn,
 } from "../worker/worker.js";
+
+test("liefert jeden erfolgreichen Teilabruf auch bei späterem Anbieterlimit zurück", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = new URL(String(input));
+    if (url.hostname === "api.openfigi.com") {
+      return new Response(JSON.stringify([{ data: [{
+        ticker: "PLTR",
+        name: "Palantir Technologies",
+        exchCode: "US",
+        securityType2: "Common Stock",
+      }] }]), { status: 200 });
+    }
+
+    const functionName = url.searchParams.get("function");
+    const payloads = {
+      TIME_SERIES_WEEKLY_ADJUSTED: {
+        "Weekly Adjusted Time Series": { "2025-01-03": { "5. adjusted close": "75.50" } },
+      },
+      INCOME_STATEMENT: {
+        annualReports: [{ fiscalDateEnding: "2025-09-30", totalRevenue: "1000", operatingIncome: "180", ebitda: "250" }],
+      },
+      BALANCE_SHEET: { Note: "Our standard API rate limit is 25 requests per day." },
+      CASH_FLOW: {
+        annualReports: [{ fiscalDateEnding: "2025-09-30", operatingCashflow: "300", capitalExpenditures: "-80" }],
+      },
+    };
+    return new Response(JSON.stringify(payloads[functionName]), { status: 200 });
+  };
+
+  try {
+    const result = await loadAsset("A2QA4J", { ALPHA_VANTAGE_API_KEY: "test-key" }, null);
+    assert.deepEqual(result.prices, [{ date: "2025-01-03", close: 75.5 }]);
+    assert.equal(result.fundamentals[0].revenue, 1000);
+    assert.equal(result.fundamentals[0].freeCashFlow, 220);
+    assert.equal(result.fundamentals[0].totalAssets, null);
+    assert.equal(result.partial, true);
+    assert.match(result.warnings.join(" "), /Bilanzdaten/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 test("nutzt eine eindeutige US-Börsenkennung ohne zusätzliche Anbietersuche", () => {
   assert.deepEqual(directAlphaInstrument({
