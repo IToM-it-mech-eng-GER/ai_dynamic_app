@@ -15,7 +15,7 @@
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23070f20'/%3E%3Cpath d='M15 43 27 31l8 7 14-17' fill='none' stroke='%23ff6b16' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
     />
     <link rel="stylesheet" href="./styles.css?v=fund-switch-graph1" />
-    <link rel="stylesheet" href="./analysis.css?v=analysis2" />
+    <link rel="stylesheet" href="./analysis.css?v=analysis3" />
   </head>
   <body class="analysis-body">
     <a class="skip-link" href="#analysis-main">Direkt zum Inhalt</a>
@@ -136,11 +136,86 @@
         <p class="dialog-error" id="analysis-add-error" aria-live="polite"></p>
         <div class="dialog-actions">
           <button class="analysis-secondary-button" id="analysis-add-cancel" type="button">Abbrechen</button>
+          <button class="analysis-secondary-button" id="analysis-add-manual" type="button">Manuell hinzufügen</button>
           <button class="analysis-primary-button" id="analysis-add-submit" type="submit">Abrufen &amp; hinzufügen</button>
         </div>
       </form>
     </dialog>
 
-    <script type="module" src="./js/analysis.js?v=analysis3"></script>
+    <dialog class="analysis-dialog edit-dialog" id="analysis-edit-dialog" aria-labelledby="analysis-edit-title">
+      <form id="analysis-edit-form" method="dialog" autocomplete="off">
+        <div class="dialog-heading">
+          <div><p class="eyebrow">Gespeicherter Datensatz</p><h2 id="analysis-edit-title">Wertpapierdaten bearbeiten</h2></div>
+          <button class="dialog-close" id="analysis-edit-close" type="button" aria-label="Fenster schließen">×</button>
+        </div>
+
+        <section class="analysis-edit-section" aria-labelledby="analysis-edit-base-title">
+          <div class="analysis-edit-section-heading">
+            <h3 id="analysis-edit-base-title">Stamm- und Kaufdaten</h3>
+          </div>
+          <div class="analysis-form-grid">
+            <label>WKN<input id="analysis-edit-wkn" type="text" minlength="6" maxlength="6" required autocapitalize="characters" spellcheck="false" /></label>
+            <label>Name<input id="analysis-edit-name" type="text" maxlength="120" /></label>
+            <label>Kürzel<input id="analysis-edit-symbol" type="text" maxlength="32" /></label>
+            <label>Art<input id="analysis-edit-type" type="text" maxlength="64" /></label>
+            <label>Währung<input id="analysis-edit-currency" type="text" minlength="3" maxlength="3" placeholder="EUR" /></label>
+            <label>Börse / Region<input id="analysis-edit-exchange" type="text" maxlength="64" /></label>
+            <label>Kaufdatum<input id="analysis-edit-purchase-date" type="date" required /></label>
+            <label>Kaufpreis je Anteil<input id="analysis-edit-purchase-price" type="number" min="0.01" step="0.01" required inputmode="decimal" /></label>
+            <label>Stückzahl<input id="analysis-edit-quantity" type="number" min="0.000001" max="1000000000" step="0.000001" required inputmode="decimal" /></label>
+          </div>
+        </section>
+
+        <section class="analysis-edit-section" aria-labelledby="analysis-edit-prices-title">
+          <div class="analysis-edit-section-heading">
+            <h3 id="analysis-edit-prices-title">Kursdaten</h3>
+            <span id="analysis-edit-price-count">0 Werte</span>
+          </div>
+          <label for="analysis-edit-price-select">Vorhandenen Kurs auswählen</label>
+          <select id="analysis-edit-price-select"><option value="">Neuer Kurswert</option></select>
+          <div class="analysis-form-grid analysis-form-grid-compact">
+            <label>Datum<input id="analysis-edit-price-date" type="date" /></label>
+            <label>Schlusskurs<input id="analysis-edit-price-close" type="number" min="0.000001" step="0.000001" inputmode="decimal" /></label>
+          </div>
+          <div class="analysis-inline-actions">
+            <button class="analysis-secondary-button" id="analysis-edit-price-upsert" type="button">Kurswert übernehmen</button>
+            <button class="analysis-secondary-button danger" id="analysis-edit-price-remove" type="button">Kurswert löschen</button>
+          </div>
+        </section>
+
+        <section class="analysis-edit-section" aria-labelledby="analysis-edit-fundamentals-title">
+          <div class="analysis-edit-section-heading">
+            <h3 id="analysis-edit-fundamentals-title">Fundamentaldaten</h3>
+            <span id="analysis-edit-fundamental-count">0 Jahre</span>
+          </div>
+          <label for="analysis-edit-fundamental-select">Geschäftsjahr auswählen</label>
+          <select id="analysis-edit-fundamental-select"><option value="">Neues Geschäftsjahr</option></select>
+          <div class="analysis-form-grid">
+            <label>Geschäftsjahr<input id="analysis-edit-fundamental-year" type="number" min="1900" max="2200" step="1" inputmode="numeric" /></label>
+            <label>Umsatz<input data-fundamental-key="revenue" type="number" step="any" inputmode="decimal" /></label>
+            <label>Operatives Ergebnis<input data-fundamental-key="operatingIncome" type="number" step="any" inputmode="decimal" /></label>
+            <label>Freier Cashflow<input data-fundamental-key="freeCashFlow" type="number" step="any" inputmode="decimal" /></label>
+            <label>EBITDA-Marge (%)<input data-fundamental-key="ebitdaMargin" type="number" step="any" inputmode="decimal" /></label>
+            <label>Bilanzsumme<input data-fundamental-key="totalAssets" type="number" step="any" inputmode="decimal" /></label>
+            <label>Kurs-Umsatz-Verhältnis<input data-fundamental-key="priceToSales" type="number" step="any" inputmode="decimal" /></label>
+            <label>Liquide Mittel<input data-fundamental-key="cash" type="number" step="any" inputmode="decimal" /></label>
+            <label>Schulden<input data-fundamental-key="debt" type="number" step="any" inputmode="decimal" /></label>
+          </div>
+          <div class="analysis-inline-actions">
+            <button class="analysis-secondary-button" id="analysis-edit-fundamental-upsert" type="button">Geschäftsjahr übernehmen</button>
+            <button class="analysis-secondary-button danger" id="analysis-edit-fundamental-remove" type="button">Geschäftsjahr löschen</button>
+          </div>
+        </section>
+
+        <p class="dialog-help">Alle Änderungen bleiben lokal in deinem Browser gespeichert. Leere Kennzahlen werden als nicht verfügbar angezeigt.</p>
+        <p class="dialog-error" id="analysis-edit-error" aria-live="polite"></p>
+        <div class="dialog-actions edit-dialog-actions">
+          <button class="analysis-secondary-button" id="analysis-edit-cancel" type="button">Abbrechen</button>
+          <button class="analysis-primary-button" id="analysis-edit-save" type="submit">Änderungen speichern</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="./js/analysis.js?v=analysis4"></script>
   </body>
 </html>

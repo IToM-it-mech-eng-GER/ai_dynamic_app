@@ -181,6 +181,11 @@ test("die Analyse bleibt eine eigenständige geschützte Seite", async () => {
 
   assert.match(html, /id="analysis-login"/);
   assert.match(html, /id="analysis-add-form"/);
+  assert.match(html, /id="analysis-add-manual"/);
+  assert.match(html, /id="analysis-edit-dialog"/);
+  assert.match(html, /id="analysis-edit-price-date"/);
+  assert.match(html, /id="analysis-edit-fundamental-year"/);
+  assert.match(html, /id="analysis-edit-save"/);
   assert.match(html, /id="analysis-quantity"/);
   assert.match(html, /id="analysis-chart"/);
   assert.match(html, /id="fundamentals-grid"/);

@@ -8,9 +8,13 @@ import {
   getFiveYearFundamentals,
   mergeAnalysisSecurityData,
   normalizeWkn,
+  removeAnalysisFundamental,
+  removeAnalysisPrice,
   readAnalysisState,
   serializeAnalysisState,
   setSecurityActive,
+  upsertAnalysisFundamental,
+  upsertAnalysisPrice,
 } from "./analysis-model.js";
 
 const PASSWORD_HASH = "d82494f05d6917ba02f7aaa29689ccb444bb73f20380876cb05d1f37537b7892";
@@ -38,6 +42,7 @@ const elements = {
   addForm: document.querySelector("#analysis-add-form"),
   addClose: document.querySelector("#analysis-add-close"),
   addCancel: document.querySelector("#analysis-add-cancel"),
+  addManual: document.querySelector("#analysis-add-manual"),
   addSubmit: document.querySelector("#analysis-add-submit"),
   addError: document.querySelector("#analysis-add-error"),
   wkn: document.querySelector("#analysis-wkn"),
@@ -52,9 +57,36 @@ const elements = {
   chartLegend: document.querySelector("#analysis-chart-legend"),
   chartDescription: document.querySelector("#analysis-chart-description"),
   fundamentals: document.querySelector("#fundamentals-grid"),
+  editDialog: document.querySelector("#analysis-edit-dialog"),
+  editForm: document.querySelector("#analysis-edit-form"),
+  editClose: document.querySelector("#analysis-edit-close"),
+  editCancel: document.querySelector("#analysis-edit-cancel"),
+  editError: document.querySelector("#analysis-edit-error"),
+  editWkn: document.querySelector("#analysis-edit-wkn"),
+  editName: document.querySelector("#analysis-edit-name"),
+  editSymbol: document.querySelector("#analysis-edit-symbol"),
+  editType: document.querySelector("#analysis-edit-type"),
+  editCurrency: document.querySelector("#analysis-edit-currency"),
+  editExchange: document.querySelector("#analysis-edit-exchange"),
+  editPurchaseDate: document.querySelector("#analysis-edit-purchase-date"),
+  editPurchasePrice: document.querySelector("#analysis-edit-purchase-price"),
+  editQuantity: document.querySelector("#analysis-edit-quantity"),
+  editPriceSelect: document.querySelector("#analysis-edit-price-select"),
+  editPriceDate: document.querySelector("#analysis-edit-price-date"),
+  editPriceClose: document.querySelector("#analysis-edit-price-close"),
+  editPriceUpsert: document.querySelector("#analysis-edit-price-upsert"),
+  editPriceRemove: document.querySelector("#analysis-edit-price-remove"),
+  editPriceCount: document.querySelector("#analysis-edit-price-count"),
+  editFundamentalSelect: document.querySelector("#analysis-edit-fundamental-select"),
+  editFundamentalYear: document.querySelector("#analysis-edit-fundamental-year"),
+  editFundamentalInputs: [...document.querySelectorAll("[data-fundamental-key]")],
+  editFundamentalUpsert: document.querySelector("#analysis-edit-fundamental-upsert"),
+  editFundamentalRemove: document.querySelector("#analysis-edit-fundamental-remove"),
+  editFundamentalCount: document.querySelector("#analysis-edit-fundamental-count"),
 };
 
 let state = readAnalysisState(localStorage.getItem(ANALYSIS_STORAGE_KEY));
+let editingSecurity = null;
 
 function openDialog(dialog) {
   if (typeof dialog.showModal === "function") dialog.showModal();
@@ -198,13 +230,14 @@ function renderProducts() {
     const actions = document.createElement("div");
     actions.className = "analysis-product-actions";
     actions.append(
+      createButton("Bearbeiten", "analysis-card-button", "edit", security.id),
       createButton("Aktualisieren", "analysis-card-button", "refresh", security.id),
       createButton("Entfernen", "analysis-card-button danger", "remove", security.id),
     );
 
     const dataSummary = document.createElement("p");
     dataSummary.className = "analysis-data-summary";
-    dataSummary.textContent = `${security.prices.length} Kurswerte · ${security.fundamentals.length} Geschäftsjahre`;
+    dataSummary.textContent = `${security.prices.length} ${security.prices.length === 1 ? "Kurswert" : "Kurswerte"} · ${security.fundamentals.length} ${security.fundamentals.length === 1 ? "Geschäftsjahr" : "Geschäftsjahre"}`;
 
     const warning = document.createElement("p");
     warning.className = "analysis-data-warning";
@@ -302,34 +335,122 @@ function render() {
   renderFundamentals();
 }
 
+function option(value, label) {
+  const entry = document.createElement("option");
+  entry.value = value;
+  entry.textContent = label;
+  return entry;
+}
+
+function showEditError(message = "") {
+  elements.editError.textContent = message;
+}
+
+function refreshPriceEditor(selectedDate = "") {
+  elements.editPriceSelect.replaceChildren(option("", "Neuer Kurswert"));
+  [...editingSecurity.prices].reverse().forEach((price) => {
+    elements.editPriceSelect.append(option(price.date, `${formatDate(price.date)} · ${formatMoney(price.close, false, editingSecurity.instrument.currency)}`));
+  });
+  elements.editPriceCount.textContent = `${editingSecurity.prices.length} ${editingSecurity.prices.length === 1 ? "Wert" : "Werte"}`;
+  elements.editPriceSelect.value = editingSecurity.prices.some((price) => price.date === selectedDate) ? selectedDate : "";
+  const selected = editingSecurity.prices.find((price) => price.date === elements.editPriceSelect.value);
+  elements.editPriceDate.value = selected?.date || "";
+  elements.editPriceClose.value = Number.isFinite(selected?.close) ? String(selected.close) : "";
+}
+
+function fillFundamentalEditor(report) {
+  elements.editFundamentalYear.value = report?.year ? String(report.year) : "";
+  elements.editFundamentalInputs.forEach((input) => {
+    const value = report?.[input.dataset.fundamentalKey];
+    input.value = Number.isFinite(value) ? String(value) : "";
+  });
+}
+
+function refreshFundamentalEditor(selectedYear = "") {
+  elements.editFundamentalSelect.replaceChildren(option("", "Neues Geschäftsjahr"));
+  [...editingSecurity.fundamentals].reverse().forEach((report) => {
+    elements.editFundamentalSelect.append(option(String(report.year), String(report.year)));
+  });
+  elements.editFundamentalCount.textContent = `${editingSecurity.fundamentals.length} ${editingSecurity.fundamentals.length === 1 ? "Jahr" : "Jahre"}`;
+  const normalizedYear = String(selectedYear || "");
+  elements.editFundamentalSelect.value = editingSecurity.fundamentals.some((report) => String(report.year) === normalizedYear)
+    ? normalizedYear
+    : "";
+  fillFundamentalEditor(editingSecurity.fundamentals.find((report) => String(report.year) === elements.editFundamentalSelect.value));
+}
+
+function openEditDialog(security) {
+  editingSecurity = createAnalysisSecurity(security);
+  showEditError();
+  elements.editWkn.value = editingSecurity.wkn;
+  elements.editName.value = editingSecurity.instrument.name;
+  elements.editSymbol.value = editingSecurity.instrument.symbol;
+  elements.editType.value = editingSecurity.instrument.type;
+  elements.editCurrency.value = editingSecurity.instrument.currency;
+  elements.editExchange.value = editingSecurity.instrument.exchange;
+  elements.editPurchaseDate.value = editingSecurity.purchaseDate;
+  elements.editPurchasePrice.value = String(editingSecurity.purchasePrice || "");
+  elements.editQuantity.value = String(editingSecurity.quantity);
+  refreshPriceEditor();
+  refreshFundamentalEditor();
+  openDialog(elements.editDialog);
+  elements.editName.focus();
+}
+
+function readNewSecurityInput() {
+  const input = {
+    wkn: normalizeWkn(elements.wkn.value),
+    purchasePrice: Number(elements.purchasePrice.value),
+    quantity: Number(elements.quantity.value),
+    purchaseDate: elements.purchaseDate.value,
+  };
+  if (!input.wkn) return { error: "Bitte eine gültige sechsstellige WKN eingeben." };
+  if (!input.purchaseDate || !Number.isFinite(input.purchasePrice) || input.purchasePrice <= 0 || !Number.isFinite(input.quantity) || input.quantity <= 0) {
+    return { error: "Bitte Kaufdatum, einen positiven Kaufpreis und eine positive Stückzahl angeben." };
+  }
+  return { input };
+}
+
+function addManualSecurity() {
+  elements.addError.textContent = "";
+  const { input, error } = readNewSecurityInput();
+  if (error) {
+    elements.addError.textContent = error;
+    return;
+  }
+  const security = createAnalysisSecurity({
+    ...input,
+    id: crypto.randomUUID(),
+    active: true,
+    color: getAnalysisColor(state.securities.length),
+    instrument: { name: input.wkn, currency: "EUR" },
+  });
+  state.securities.push(security);
+  saveState();
+  render();
+  elements.addForm.reset();
+  closeDialog(elements.addDialog);
+  setStatus("Der leere Datensatz wurde lokal angelegt und kann jetzt ergänzt werden.", "success");
+  openEditDialog(security);
+}
+
 async function addSecurity(event) {
   event.preventDefault();
   elements.addError.textContent = "";
-  const wkn = normalizeWkn(elements.wkn.value);
-  const purchasePrice = Number(elements.purchasePrice.value);
-  const quantity = Number(elements.quantity.value);
-  const purchaseDate = elements.purchaseDate.value;
-
-  if (!wkn) {
-    elements.addError.textContent = "Bitte eine gültige sechsstellige WKN eingeben.";
-    return;
-  }
-  if (!purchaseDate || !Number.isFinite(purchasePrice) || purchasePrice <= 0 || !Number.isFinite(quantity) || quantity <= 0) {
-    elements.addError.textContent = "Bitte Kaufdatum, einen positiven Kaufpreis und eine positive Stückzahl angeben.";
+  const { input, error: inputError } = readNewSecurityInput();
+  if (inputError) {
+    elements.addError.textContent = inputError;
     return;
   }
 
   elements.addSubmit.disabled = true;
   elements.addSubmit.textContent = "Daten werden geladen …";
   try {
-    const cached = findCachedSecurity(wkn);
-    const remote = cached || await fetchAsset(wkn);
+    const cached = findCachedSecurity(input.wkn);
+    const remote = cached || await fetchAsset(input.wkn);
     const security = createAnalysisSecurity({
+      ...input,
       id: crypto.randomUUID(),
-      wkn,
-      purchaseDate,
-      purchasePrice,
-      quantity,
       active: true,
       color: getAnalysisColor(state.securities.length),
       fetchedAt: cached?.fetchedAt || remote.fetchedAt || new Date().toISOString(),
@@ -382,6 +503,111 @@ async function refreshSecurity(security) {
   }
 }
 
+function upsertEditedPrice() {
+  showEditError();
+  const selectedDate = elements.editPriceSelect.value;
+  const date = elements.editPriceDate.value;
+  const close = Number(elements.editPriceClose.value);
+  if (!date || !Number.isFinite(close) || close <= 0) {
+    showEditError("Bitte für den Kurswert ein gültiges Datum und einen positiven Schlusskurs angeben.");
+    return;
+  }
+  if (selectedDate && selectedDate !== date) {
+    editingSecurity = removeAnalysisPrice(editingSecurity, selectedDate);
+  }
+  editingSecurity = upsertAnalysisPrice(editingSecurity, { date, close });
+  refreshPriceEditor(date);
+}
+
+function removeEditedPrice() {
+  showEditError();
+  const date = elements.editPriceSelect.value || elements.editPriceDate.value;
+  if (!editingSecurity.prices.some((price) => price.date === date)) {
+    showEditError("Bitte zuerst einen vorhandenen Kurswert auswählen.");
+    return;
+  }
+  editingSecurity = removeAnalysisPrice(editingSecurity, date);
+  refreshPriceEditor();
+}
+
+function readFundamentalValue(input) {
+  if (!input.value.trim()) return null;
+  const value = Number(input.value);
+  return Number.isFinite(value) ? value : null;
+}
+
+function upsertEditedFundamental() {
+  showEditError();
+  const selectedYear = Number(elements.editFundamentalSelect.value);
+  const year = Number(elements.editFundamentalYear.value);
+  const values = Object.fromEntries(elements.editFundamentalInputs.map((input) => [
+    input.dataset.fundamentalKey,
+    readFundamentalValue(input),
+  ]));
+  if (!Number.isInteger(year) || year < 1900 || year > 2200) {
+    showEditError("Bitte ein gültiges Geschäftsjahr angeben.");
+    return;
+  }
+  if (!Object.values(values).some(Number.isFinite)) {
+    showEditError("Bitte mindestens eine Kennzahl für dieses Geschäftsjahr angeben.");
+    return;
+  }
+  if (selectedYear && selectedYear !== year) {
+    editingSecurity = removeAnalysisFundamental(editingSecurity, selectedYear);
+  }
+  editingSecurity = upsertAnalysisFundamental(editingSecurity, { year, ...values });
+  refreshFundamentalEditor(year);
+}
+
+function removeEditedFundamental() {
+  showEditError();
+  const year = Number(elements.editFundamentalSelect.value || elements.editFundamentalYear.value);
+  if (!editingSecurity.fundamentals.some((report) => report.year === year)) {
+    showEditError("Bitte zuerst ein vorhandenes Geschäftsjahr auswählen.");
+    return;
+  }
+  editingSecurity = removeAnalysisFundamental(editingSecurity, year);
+  refreshFundamentalEditor();
+}
+
+function saveEditedSecurity(event) {
+  event.preventDefault();
+  showEditError();
+  const wkn = normalizeWkn(elements.editWkn.value);
+  const purchasePrice = Number(elements.editPurchasePrice.value);
+  const quantity = Number(elements.editQuantity.value);
+  const purchaseDate = elements.editPurchaseDate.value;
+  if (!wkn) {
+    showEditError("Bitte eine gültige sechsstellige WKN eingeben.");
+    return;
+  }
+  if (!purchaseDate || !Number.isFinite(purchasePrice) || purchasePrice <= 0 || !Number.isFinite(quantity) || quantity <= 0) {
+    showEditError("Bitte Kaufdatum, einen positiven Kaufpreis und eine positive Stückzahl angeben.");
+    return;
+  }
+
+  const updated = createAnalysisSecurity({
+    ...editingSecurity,
+    wkn,
+    purchaseDate,
+    purchasePrice,
+    quantity,
+    instrument: {
+      name: elements.editName.value,
+      symbol: elements.editSymbol.value,
+      type: elements.editType.value,
+      currency: elements.editCurrency.value.toUpperCase(),
+      exchange: elements.editExchange.value,
+    },
+  });
+  state.securities = state.securities.map((security) => security.id === updated.id ? updated : security);
+  saveState();
+  render();
+  editingSecurity = null;
+  closeDialog(elements.editDialog);
+  setStatus("Die manuellen Änderungen wurden lokal gespeichert.", "success");
+}
+
 elements.loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const valid = await hashText(elements.password.value) === PASSWORD_HASH;
@@ -406,7 +632,18 @@ elements.addButton.addEventListener("click", () => {
 });
 elements.addClose.addEventListener("click", () => closeDialog(elements.addDialog));
 elements.addCancel.addEventListener("click", () => closeDialog(elements.addDialog));
+elements.addManual.addEventListener("click", addManualSecurity);
 elements.addForm.addEventListener("submit", addSecurity);
+
+elements.editClose.addEventListener("click", () => closeDialog(elements.editDialog));
+elements.editCancel.addEventListener("click", () => closeDialog(elements.editDialog));
+elements.editForm.addEventListener("submit", saveEditedSecurity);
+elements.editPriceSelect.addEventListener("change", () => refreshPriceEditor(elements.editPriceSelect.value));
+elements.editPriceUpsert.addEventListener("click", upsertEditedPrice);
+elements.editPriceRemove.addEventListener("click", removeEditedPrice);
+elements.editFundamentalSelect.addEventListener("change", () => refreshFundamentalEditor(elements.editFundamentalSelect.value));
+elements.editFundamentalUpsert.addEventListener("click", upsertEditedFundamental);
+elements.editFundamentalRemove.addEventListener("click", removeEditedFundamental);
 
 elements.products.addEventListener("change", (event) => {
   const input = event.target.closest('[data-action="toggle"]');
@@ -421,6 +658,7 @@ elements.products.addEventListener("click", (event) => {
   if (!button) return;
   const security = state.securities.find((entry) => entry.id === button.dataset.id);
   if (!security) return;
+  if (button.dataset.action === "edit") openEditDialog(security);
   if (button.dataset.action === "refresh") refreshSecurity(security);
   if (button.dataset.action === "remove" && window.confirm("Dieses Wertpapier und seine gespeicherten Daten entfernen?")) {
     state.securities = state.securities.filter((entry) => entry.id !== security.id);
