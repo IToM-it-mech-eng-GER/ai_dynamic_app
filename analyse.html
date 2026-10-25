@@ -120,6 +120,13 @@
         </div>
         <label for="analysis-wkn">WKN</label>
         <input id="analysis-wkn" name="wkn" type="text" minlength="6" maxlength="6" required autocapitalize="characters" spellcheck="false" placeholder="z. B. 865985" />
+        <div class="analysis-form-grid">
+          <label for="analysis-name">Name<input id="analysis-name" name="name" type="text" maxlength="120" placeholder="z. B. Palantir Technologies" /></label>
+          <label for="analysis-symbol">Kürzel<input id="analysis-symbol" name="symbol" type="text" maxlength="32" autocapitalize="characters" spellcheck="false" placeholder="z. B. PLTR" /></label>
+          <label for="analysis-type">Art<input id="analysis-type" name="type" type="text" maxlength="64" placeholder="z. B. Aktie oder ETF" /></label>
+          <label for="analysis-currency">Währung<input id="analysis-currency" name="currency" type="text" minlength="3" maxlength="3" autocapitalize="characters" placeholder="EUR" /></label>
+          <label for="analysis-exchange">Börse / Region<input id="analysis-exchange" name="exchange" type="text" maxlength="64" placeholder="z. B. NASDAQ" /></label>
+        </div>
         <label for="analysis-purchase-date">Kaufdatum</label>
         <input id="analysis-purchase-date" name="purchaseDate" type="date" required />
         <label for="analysis-purchase-price">Kaufpreis je Anteil</label>
@@ -132,7 +139,7 @@
           <input id="analysis-quantity" name="quantity" type="number" min="0.000001" max="1000000000" step="0.000001" inputmode="decimal" value="1" required />
           <span>Stück</span>
         </div>
-        <p class="dialog-help">Die WKN wird zur Datenabfrage übertragen. Kaufdatum, Kaufpreis und Stückzahl bleiben nur in deinem Browser.</p>
+        <p class="dialog-help">Mit einem Kürzel werden keine Stammdaten online gesucht. Kaufdaten und manuelle Angaben bleiben in deinem Browser.</p>
         <p class="dialog-error" id="analysis-add-error" aria-live="polite"></p>
         <div class="dialog-actions">
           <button class="analysis-secondary-button" id="analysis-add-cancel" type="button">Abbrechen</button>
@@ -216,6 +223,6 @@
       </form>
     </dialog>
 
-    <script type="module" src="./js/analysis.js?v=analysis5"></script>
+    <script type="module" src="./js/analysis.js?v=efficient1"></script>
   </body>
 </html>

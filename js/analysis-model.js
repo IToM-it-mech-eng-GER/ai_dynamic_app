@@ -206,6 +206,24 @@ export function getFiveYearFundamentals(reports) {
   return normalizeFundamentals(reports).slice(-5);
 }
 
+export function getMissingAnalysisSections(security) {
+  const current = createAnalysisSecurity(security);
+  const sections = [];
+  const isFund = /ETF|ETP|FUND/i.test(current.instrument.type);
+
+  if (current.prices.length === 0) sections.push("prices");
+  if (isFund) return sections;
+
+  const reports = getFiveYearFundamentals(current.fundamentals);
+  if (reports.length === 0) return [...sections, "income", "balance", "cashflow"];
+
+  const misses = (fields) => reports.some((report) => fields.some((field) => !Number.isFinite(report[field])));
+  if (misses(["revenue", "operatingIncome", "ebitdaMargin"])) sections.push("income");
+  if (misses(["totalAssets", "cash", "debt"])) sections.push("balance");
+  if (misses(["freeCashFlow"])) sections.push("cashflow");
+  return sections;
+}
+
 function nearestReferencePrice(prices, purchaseDate) {
   return prices.reduce((nearest, entry) => {
     if (!nearest) return entry;

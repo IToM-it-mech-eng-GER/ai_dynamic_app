@@ -6,6 +6,7 @@ import {
   getAnalysisColor,
   getAnalysisColorIndex,
   getFiveYearFundamentals,
+  getMissingAnalysisSections,
   mergeAnalysisSecurityData,
   normalizeWkn,
   removeAnalysisFundamental,
@@ -46,6 +47,11 @@ const elements = {
   addSubmit: document.querySelector("#analysis-add-submit"),
   addError: document.querySelector("#analysis-add-error"),
   wkn: document.querySelector("#analysis-wkn"),
+  name: document.querySelector("#analysis-name"),
+  symbol: document.querySelector("#analysis-symbol"),
+  type: document.querySelector("#analysis-type"),
+  currency: document.querySelector("#analysis-currency"),
+  exchange: document.querySelector("#analysis-exchange"),
   purchaseDate: document.querySelector("#analysis-purchase-date"),
   purchasePrice: document.querySelector("#analysis-purchase-price"),
   quantity: document.querySelector("#analysis-quantity"),
@@ -157,13 +163,17 @@ function findCachedSecurity(wkn) {
   );
 }
 
-async function fetchAsset(wkn) {
+async function fetchAsset(security, sections = getMissingAnalysisSections(security)) {
   if (!ANALYSIS_API_BASE_URL) {
     throw new Error("Der Online-Datendienst ist noch nicht verbunden.");
   }
 
   const url = new URL("asset", `${ANALYSIS_API_BASE_URL.replace(/\/$/, "")}/`);
-  url.searchParams.set("wkn", wkn);
+  url.searchParams.set("wkn", security.wkn);
+  if (sections.length) url.searchParams.set("sections", sections.join(","));
+  Object.entries(security.instrument).forEach(([key, value]) => {
+    if (value) url.searchParams.set(key, value);
+  });
   const response = await fetch(url, { headers: { Accept: "application/json" } });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.error || "Die Marktdaten konnten nicht geladen werden.");
@@ -403,6 +413,13 @@ function readNewSecurityInput() {
     purchasePrice: Number(elements.purchasePrice.value),
     quantity: Number(elements.quantity.value),
     purchaseDate: elements.purchaseDate.value,
+    instrument: {
+      name: elements.name.value.trim(),
+      symbol: elements.symbol.value.trim().toUpperCase(),
+      type: elements.type.value.trim(),
+      currency: elements.currency.value.trim().toUpperCase(),
+      exchange: elements.exchange.value.trim(),
+    },
   };
   if (!input.wkn) return { error: "Bitte eine gültige sechsstellige WKN eingeben." };
   if (!input.purchaseDate || !Number.isFinite(input.purchasePrice) || input.purchasePrice <= 0 || !Number.isFinite(input.quantity) || input.quantity <= 0) {
@@ -423,7 +440,11 @@ function addManualSecurity() {
     id: crypto.randomUUID(),
     active: true,
     color: getAnalysisColor(state.securities.length),
-    instrument: { name: input.wkn, currency: "EUR" },
+    instrument: {
+      ...input.instrument,
+      name: input.instrument.name || input.wkn,
+      currency: input.instrument.currency || "EUR",
+    },
   });
   state.securities.push(security);
   saveState();
@@ -447,7 +468,8 @@ async function addSecurity(event) {
   elements.addSubmit.textContent = "Daten werden geladen …";
   try {
     const cached = findCachedSecurity(input.wkn);
-    const remote = cached || await fetchAsset(input.wkn);
+    const draft = createAnalysisSecurity({ ...input, instrument: input.instrument });
+    const remote = cached || await fetchAsset(draft);
     const security = createAnalysisSecurity({
       ...input,
       id: crypto.randomUUID(),
@@ -481,9 +503,14 @@ async function addSecurity(event) {
 }
 
 async function refreshSecurity(security) {
+  const sections = getMissingAnalysisSections(security);
+  if (sections.length === 0) {
+    setStatus("Für dieses Wertpapier fehlen keine Online-Daten. Manuelle Werte können über Bearbeiten geändert werden.", "success");
+    return;
+  }
   setStatus(`Daten für ${security.instrument.name || security.wkn} werden aktualisiert …`);
   try {
-    const remote = await fetchAsset(security.wkn);
+    const remote = await fetchAsset(security, sections);
     state.securities = state.securities.map((entry) => entry.id === security.id
       ? mergeAnalysisSecurityData(entry, {
           ...remote,

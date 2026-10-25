@@ -6,6 +6,7 @@ import {
   ANALYSIS_STORAGE_KEY,
   buildStackedSeries,
   createAnalysisSecurity,
+  getMissingAnalysisSections,
   getFiveYearFundamentals,
   mergeAnalysisSecurityData,
   normalizeWkn,
@@ -17,6 +18,64 @@ import {
   upsertAnalysisFundamental,
   upsertAnalysisPrice,
 } from "../js/analysis-model.js";
+
+test("ermittelt nur die noch fehlenden Online-Datenbereiche", () => {
+  const security = createAnalysisSecurity({
+    id: "security-1",
+    wkn: "A2QA4J",
+    purchaseDate: "2025-03-14",
+    purchasePrice: 75.26,
+    instrument: { name: "Palantir Technologies", symbol: "PLTR", type: "Common Stock", currency: "USD" },
+    prices: [{ date: "2025-01-03", close: 75.5 }],
+    fundamentals: [{
+      year: 2025,
+      revenue: 1000,
+      operatingIncome: 180,
+      freeCashFlow: null,
+      ebitdaMargin: 25,
+      totalAssets: 4000,
+      priceToSales: 2,
+      cash: 500,
+      debt: 900,
+    }],
+  });
+
+  assert.deepEqual(getMissingAnalysisSections(security), ["cashflow"]);
+});
+
+test("fordert für ein leeres Wertpapier alle benötigten Datenbereiche an", () => {
+  const security = createAnalysisSecurity({
+    id: "security-1",
+    wkn: "A2QA4J",
+    purchaseDate: "2025-03-14",
+    purchasePrice: 75.26,
+  });
+
+  assert.deepEqual(getMissingAnalysisSections(security), ["prices", "income", "balance", "cashflow"]);
+});
+
+test("fragt vorhandene Kursdaten nicht nur wegen eines fehlenden Kurs-Umsatz-Verhältnisses erneut ab", () => {
+  const security = createAnalysisSecurity({
+    id: "security-1",
+    wkn: "A2QA4J",
+    purchaseDate: "2025-03-14",
+    purchasePrice: 75.26,
+    prices: [{ date: "2025-01-03", close: 75.5 }],
+    fundamentals: [{
+      year: 2025,
+      revenue: 1000,
+      operatingIncome: 180,
+      freeCashFlow: 220,
+      ebitdaMargin: 25,
+      totalAssets: 4000,
+      priceToSales: null,
+      cash: 500,
+      debt: 900,
+    }],
+  });
+
+  assert.deepEqual(getMissingAnalysisSections(security), []);
+});
 
 test("akzeptiert gültige WKN und verwirft mehrdeutige Zeichen", () => {
   assert.equal(normalizeWkn(" 865985 "), "865985");
@@ -219,6 +278,9 @@ test("die Analyse bleibt eine eigenständige geschützte Seite", async () => {
   assert.match(html, /id="analysis-edit-fundamental-year"/);
   assert.match(html, /id="analysis-edit-save"/);
   assert.match(html, /id="analysis-quantity"/);
+  assert.match(html, /id="analysis-name"/);
+  assert.match(html, /id="analysis-symbol"/);
+  assert.match(html, /id="analysis-type"/);
   assert.match(html, /id="analysis-chart"/);
   assert.match(html, /id="fundamentals-grid"/);
   assert.match(app, /crypto\.subtle\.digest/);
