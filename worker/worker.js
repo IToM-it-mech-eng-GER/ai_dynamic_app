@@ -272,23 +272,43 @@ async function capturePartial(label, request, warnings) {
   }
 }
 
-export async function loadAsset(wkn, env, cache) {
+export async function loadAsset(wkn, env, cache, options = {}) {
   if (!env.ALPHA_VANTAGE_API_KEY) throw new Error("Der Marktdatenzugang ist nicht konfiguriert.");
-  const figi = await mapWkn(wkn, env);
+  const supplied = options.instrument ?? {};
+  const figi = safeText(supplied.symbol, 40)
+    ? {
+        ticker: safeText(supplied.symbol, 40),
+        name: safeText(supplied.name),
+        securityType2: safeText(supplied.type, 60),
+        currency: safeText(supplied.currency, 12),
+        exchCode: safeText(supplied.exchange, 60),
+      }
+    : await mapWkn(wkn, env);
   const warnings = [];
-  const alpha = directAlphaInstrument(figi)
-    ?? await capturePartial(
-      "Wertpapierkennung",
-      () => resolveAlphaInstrument(figi, env.ALPHA_VANTAGE_API_KEY, cache),
-      warnings,
-    );
+  const requestedSections = new Set(Array.isArray(options.sections) && options.sections.length
+    ? options.sections.filter((section) => ["prices", "income", "balance", "cashflow"].includes(section))
+    : ["prices", "income", "balance", "cashflow"]);
+  const alpha = safeText(supplied.symbol, 40)
+    ? {
+        symbol: safeText(supplied.symbol, 40),
+        name: safeText(supplied.name),
+        type: safeText(supplied.type, 60),
+        currency: safeText(supplied.currency, 12),
+        region: safeText(supplied.exchange, 60),
+      }
+    : directAlphaInstrument(figi)
+      ?? await capturePartial(
+        "Wertpapierkennung",
+        () => resolveAlphaInstrument(figi, env.ALPHA_VANTAGE_API_KEY, cache),
+        warnings,
+      );
 
   const instrument = {
-    name: alpha?.name || safeText(figi.name),
+    name: safeText(supplied.name) || alpha?.name || safeText(figi.name),
     symbol: alpha?.symbol || safeText(figi.ticker, 40),
-    type: alpha?.type || safeText(figi.securityType2 || figi.securityType),
-    currency: alpha?.currency || safeText(figi.currency, 12),
-    exchange: alpha?.region || safeText(figi.exchCode, 60),
+    type: safeText(supplied.type, 60) || alpha?.type || safeText(figi.securityType2 || figi.securityType),
+    currency: safeText(supplied.currency, 12) || alpha?.currency || safeText(figi.currency, 12),
+    exchange: safeText(supplied.exchange, 60) || alpha?.region || safeText(figi.exchCode, 60),
   };
 
   if (!alpha?.symbol) {
@@ -303,31 +323,39 @@ export async function loadAsset(wkn, env, cache) {
     };
   }
 
-  const weekly = await capturePartial(
-    "Kursdaten",
-    () => alphaRequest("TIME_SERIES_WEEKLY_ADJUSTED", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache),
-    warnings,
-  );
+  const weekly = requestedSections.has("prices")
+    ? await capturePartial(
+      "Kursdaten",
+      () => alphaRequest("TIME_SERIES_WEEKLY_ADJUSTED", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache),
+      warnings,
+    )
+    : null;
   const prices = parseWeeklyPrices(weekly);
   if (weekly && !prices.length) warnings.push("Kursdaten: Für dieses Wertpapier sind keine historischen Kurse verfügbar.");
 
   let fundamentals = [];
   if (!isFundLike(figi, alpha)) {
-    const income = await capturePartial(
-      "Ergebnisdaten",
-      () => alphaRequest("INCOME_STATEMENT", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache),
-      warnings,
-    );
-    const balance = await capturePartial(
-      "Bilanzdaten",
-      () => alphaRequest("BALANCE_SHEET", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache),
-      warnings,
-    );
-    const cashFlow = await capturePartial(
-      "Cashflow-Daten",
-      () => alphaRequest("CASH_FLOW", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache),
-      warnings,
-    );
+    const income = requestedSections.has("income")
+      ? await capturePartial(
+        "Ergebnisdaten",
+        () => alphaRequest("INCOME_STATEMENT", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache),
+        warnings,
+      )
+      : null;
+    const balance = requestedSections.has("balance")
+      ? await capturePartial(
+        "Bilanzdaten",
+        () => alphaRequest("BALANCE_SHEET", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache),
+        warnings,
+      )
+      : null;
+    const cashFlow = requestedSections.has("cashflow")
+      ? await capturePartial(
+        "Cashflow-Daten",
+        () => alphaRequest("CASH_FLOW", { symbol: alpha.symbol }, env.ALPHA_VANTAGE_API_KEY, cache),
+        warnings,
+      )
+      : null;
     fundamentals = buildFundamentalHistory(
       income?.annualReports,
       balance?.annualReports,
@@ -387,8 +415,19 @@ async function handleRequest(request, env, context) {
   const wkn = validateWkn(url.searchParams.get("wkn"));
   if (!wkn) return jsonResponse({ error: "Ungültige WKN." }, 400, origin);
 
+  const sections = safeText(url.searchParams.get("sections"), 80)
+    .split(",")
+    .filter((section) => ["prices", "income", "balance", "cashflow"].includes(section));
+  const instrument = {
+    name: safeText(url.searchParams.get("name")),
+    symbol: safeText(url.searchParams.get("symbol"), 40),
+    type: safeText(url.searchParams.get("type"), 60),
+    currency: safeText(url.searchParams.get("currency"), 12),
+    exchange: safeText(url.searchParams.get("exchange"), 60),
+  };
+
   const cache = caches.default;
-  const cacheKey = new Request(`https://analysis-cache.invalid/asset?wkn=${encodeURIComponent(wkn)}`);
+  const cacheKey = new Request(`https://analysis-cache.invalid${url.pathname}?${url.searchParams.toString()}`);
   const cached = await cache.match(cacheKey);
   if (cached) {
     const data = await cached.json();
@@ -396,7 +435,7 @@ async function handleRequest(request, env, context) {
   }
 
   try {
-    const data = await loadAsset(wkn, env, cache);
+    const data = await loadAsset(wkn, env, cache, { instrument, sections });
     if (!data.partial) {
       const cacheResponse = new Response(JSON.stringify(data), {
         status: 200,

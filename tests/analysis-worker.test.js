@@ -54,6 +54,40 @@ test("liefert jeden erfolgreichen Teilabruf auch bei späterem Anbieterlimit zur
   }
 });
 
+test("nutzt manuelle Stammdaten und fragt nur ausgewählte Datenbereiche ab", async () => {
+  const originalFetch = globalThis.fetch;
+  const requests = [];
+  globalThis.fetch = async (input) => {
+    const url = new URL(String(input));
+    requests.push(url);
+    if (url.hostname === "api.openfigi.com") {
+      throw new Error("Die WKN-Suche darf bei manuellen Stammdaten nicht aufgerufen werden.");
+    }
+    return new Response(JSON.stringify({
+      annualReports: [{ fiscalDateEnding: "2025-09-30", operatingCashflow: "300", capitalExpenditures: "-80" }],
+    }), { status: 200 });
+  };
+
+  try {
+    const result = await loadAsset("A2QA4J", { ALPHA_VANTAGE_API_KEY: "test-key" }, null, {
+      instrument: {
+        name: "Palantir Technologies",
+        symbol: "PLTR",
+        type: "Common Stock",
+        currency: "USD",
+        exchange: "NASDAQ",
+      },
+      sections: ["cashflow"],
+    });
+
+    assert.equal(result.instrument.name, "Palantir Technologies");
+    assert.equal(result.fundamentals[0].freeCashFlow, 220);
+    assert.deepEqual(requests.map((url) => url.searchParams.get("function")), ["CASH_FLOW"]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("nutzt eine eindeutige US-Börsenkennung ohne zusätzliche Anbietersuche", () => {
   assert.deepEqual(directAlphaInstrument({
     ticker: "PLTR",
