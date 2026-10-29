@@ -14,6 +14,7 @@ import {
 
 test("liefert jeden erfolgreichen Teilabruf auch bei späterem Anbieterlimit zurück", async () => {
   const originalFetch = globalThis.fetch;
+  const providerRequests = [];
   globalThis.fetch = async (input) => {
     const url = new URL(String(input));
     if (url.hostname === "api.openfigi.com") {
@@ -26,6 +27,7 @@ test("liefert jeden erfolgreichen Teilabruf auch bei späterem Anbieterlimit zur
     }
 
     const functionName = url.searchParams.get("function");
+    providerRequests.push(functionName);
     const payloads = {
       TIME_SERIES_WEEKLY_ADJUSTED: {
         "Weekly Adjusted Time Series": { "2025-01-03": { "5. adjusted close": "75.50" } },
@@ -49,6 +51,12 @@ test("liefert jeden erfolgreichen Teilabruf auch bei späterem Anbieterlimit zur
     assert.equal(result.fundamentals[0].totalAssets, null);
     assert.equal(result.partial, true);
     assert.match(result.warnings.join(" "), /Bilanzdaten/);
+    assert.deepEqual(providerRequests, [
+      "TIME_SERIES_WEEKLY_ADJUSTED",
+      "INCOME_STATEMENT",
+      "BALANCE_SHEET",
+      "CASH_FLOW",
+    ]);
   } finally {
     globalThis.fetch = originalFetch;
   }

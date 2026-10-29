@@ -55,6 +55,15 @@ const elements = {
   purchaseDate: document.querySelector("#analysis-purchase-date"),
   purchasePrice: document.querySelector("#analysis-purchase-price"),
   quantity: document.querySelector("#analysis-quantity"),
+  refreshDialog: document.querySelector("#analysis-refresh-dialog"),
+  refreshForm: document.querySelector("#analysis-refresh-form"),
+  refreshClose: document.querySelector("#analysis-refresh-close"),
+  refreshCancel: document.querySelector("#analysis-refresh-cancel"),
+  refreshSubmit: document.querySelector("#analysis-refresh-submit"),
+  refreshProduct: document.querySelector("#analysis-refresh-product"),
+  refreshCount: document.querySelector("#analysis-refresh-count"),
+  refreshError: document.querySelector("#analysis-refresh-error"),
+  refreshSections: [...document.querySelectorAll("[data-refresh-section]")],
   status: document.querySelector("#analysis-status"),
   products: document.querySelector("#analysis-products"),
   empty: document.querySelector("#analysis-empty"),
@@ -93,6 +102,7 @@ const elements = {
 
 let state = readAnalysisState(localStorage.getItem(ANALYSIS_STORAGE_KEY));
 let editingSecurity = null;
+let refreshingSecurity = null;
 
 function openDialog(dialog) {
   if (typeof dialog.showModal === "function") dialog.showModal();
@@ -502,31 +512,76 @@ async function addSecurity(event) {
   }
 }
 
-async function refreshSecurity(security) {
-  const sections = getMissingAnalysisSections(security);
-  if (sections.length === 0) {
-    setStatus("Für dieses Wertpapier fehlen keine Online-Daten. Manuelle Werte können über Bearbeiten geändert werden.", "success");
-    return;
-  }
+function selectedRefreshSections() {
+  return elements.refreshSections
+    .filter((input) => input.checked && !input.disabled)
+    .map((input) => input.value);
+}
+
+function updateRefreshSelection() {
+  const selected = selectedRefreshSections();
+  elements.refreshCount.textContent = `${selected.length} von 4 ausgewählt · ${selected.length} ${selected.length === 1 ? "Abfrage" : "Abfragen"}`;
+  elements.refreshSubmit.disabled = selected.length === 0;
+  elements.refreshError.textContent = "";
+}
+
+function closeRefreshDialog() {
+  closeDialog(elements.refreshDialog);
+  refreshingSecurity = null;
+}
+
+function openRefreshDialog(security) {
+  refreshingSecurity = security;
+  const missing = new Set(getMissingAnalysisSections(security));
+  const isFund = /ETF|ETP|FUND|FONDS/i.test(security.instrument.type);
+  elements.refreshProduct.textContent = security.instrument.name || security.wkn;
+  elements.refreshSections.forEach((input) => {
+    const isFundamental = input.value !== "prices";
+    input.disabled = isFund && isFundamental;
+    input.checked = !input.disabled && missing.has(input.value);
+  });
+  updateRefreshSelection();
+  openDialog(elements.refreshDialog);
+  const firstAvailable = elements.refreshSections.find((input) => !input.disabled);
+  firstAvailable?.focus();
+}
+
+async function refreshSecurity(security, sections) {
   setStatus(`Daten für ${security.instrument.name || security.wkn} werden aktualisiert …`);
+  const remote = await fetchAsset(security, sections);
+  state.securities = state.securities.map((entry) => entry.id === security.id
+    ? mergeAnalysisSecurityData(entry, {
+        ...remote,
+        fetchedAt: remote.fetchedAt || new Date().toISOString(),
+      })
+    : entry);
+  saveState();
+  render();
+  setStatus(
+    remote.warnings?.length
+      ? "Neue Teildaten wurden ergänzt. Fehlende Werte bleiben zur Bearbeitung offen."
+      : "Die gewählten Wertpapierdaten wurden aktualisiert.",
+    "success",
+  );
+}
+
+async function submitRefreshSelection(event) {
+  event.preventDefault();
+  const sections = selectedRefreshSections();
+  if (!refreshingSecurity || sections.length === 0) return;
+  elements.refreshSubmit.disabled = true;
+  elements.refreshSubmit.textContent = "Abruf läuft …";
+  elements.refreshError.textContent = "";
   try {
-    const remote = await fetchAsset(security, sections);
-    state.securities = state.securities.map((entry) => entry.id === security.id
-      ? mergeAnalysisSecurityData(entry, {
-          ...remote,
-          fetchedAt: remote.fetchedAt || new Date().toISOString(),
-        })
-      : entry);
-    saveState();
-    render();
-    setStatus(
-      remote.warnings?.length
-        ? "Neue Teildaten wurden ergänzt. Fehlende Werte bleiben zur Bearbeitung offen."
-        : "Die Wertpapierdaten wurden aktualisiert.",
-      "success",
-    );
+    await refreshSecurity(refreshingSecurity, sections);
+    closeRefreshDialog();
   } catch (error) {
-    setStatus(error instanceof Error ? error.message : "Die Aktualisierung ist fehlgeschlagen.", "error");
+    const message = error instanceof Error ? error.message : "Die Aktualisierung ist fehlgeschlagen.";
+    elements.refreshError.textContent = message;
+    setStatus(message, "error");
+  } finally {
+    elements.refreshSubmit.textContent = "OK";
+    if (refreshingSecurity) updateRefreshSelection();
   }
 }
 
@@ -662,6 +717,11 @@ elements.addCancel.addEventListener("click", () => closeDialog(elements.addDialo
 elements.addManual.addEventListener("click", addManualSecurity);
 elements.addForm.addEventListener("submit", addSecurity);
 
+elements.refreshClose.addEventListener("click", closeRefreshDialog);
+elements.refreshCancel.addEventListener("click", closeRefreshDialog);
+elements.refreshForm.addEventListener("submit", submitRefreshSelection);
+elements.refreshSections.forEach((input) => input.addEventListener("change", updateRefreshSelection));
+
 elements.editClose.addEventListener("click", () => closeDialog(elements.editDialog));
 elements.editCancel.addEventListener("click", () => closeDialog(elements.editDialog));
 elements.editForm.addEventListener("submit", saveEditedSecurity);
@@ -686,7 +746,7 @@ elements.products.addEventListener("click", (event) => {
   const security = state.securities.find((entry) => entry.id === button.dataset.id);
   if (!security) return;
   if (button.dataset.action === "edit") openEditDialog(security);
-  if (button.dataset.action === "refresh") refreshSecurity(security);
+  if (button.dataset.action === "refresh") openRefreshDialog(security);
   if (button.dataset.action === "remove" && window.confirm("Dieses Wertpapier und seine gespeicherten Daten entfernen?")) {
     state.securities = state.securities.filter((entry) => entry.id !== security.id);
     saveState();

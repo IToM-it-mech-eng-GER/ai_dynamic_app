@@ -274,6 +274,10 @@ test("die Analyse bleibt eine eigenständige geschützte Seite", async () => {
   assert.match(html, /id="analysis-add-form"/);
   assert.match(html, /id="analysis-add-manual"/);
   assert.match(html, /id="analysis-edit-dialog"/);
+  assert.match(html, /id="analysis-refresh-dialog"/);
+  assert.match(html, /id="analysis-refresh-form"/);
+  assert.match(html, /id="analysis-refresh-cancel"/);
+  assert.equal((html.match(/data-refresh-section=/g) || []).length, 4);
   assert.match(html, /id="analysis-edit-price-date"/);
   assert.match(html, /id="analysis-edit-fundamental-year"/);
   assert.match(html, /id="analysis-edit-save"/);
@@ -284,6 +288,8 @@ test("die Analyse bleibt eine eigenständige geschützte Seite", async () => {
   assert.match(html, /id="analysis-chart"/);
   assert.match(html, /id="fundamentals-grid"/);
   assert.match(app, /crypto\.subtle\.digest/);
+  assert.match(app, /openRefreshDialog/);
+  assert.match(app, /selectedRefreshSections/);
   assert.match(app, /analysis-config\.js\?v=api1/);
   assert.match(config, /https:\/\/renditeatlas-analysis-api\.itmeise\.workers\.dev/);
   assert.doesNotMatch(`${html}\n${app}`, /adminadmin/);

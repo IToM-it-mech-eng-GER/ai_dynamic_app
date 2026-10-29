@@ -15,7 +15,7 @@
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23070f20'/%3E%3Cpath d='M15 43 27 31l8 7 14-17' fill='none' stroke='%23ff6b16' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
     />
     <link rel="stylesheet" href="./styles.css?v=fund-switch-graph1" />
-    <link rel="stylesheet" href="./analysis.css?v=analysis3" />
+    <link rel="stylesheet" href="./analysis.css?v=request-selection1" />
   </head>
   <body class="analysis-body">
     <a class="skip-link" href="#analysis-main">Direkt zum Inhalt</a>
@@ -149,6 +149,45 @@
       </form>
     </dialog>
 
+    <dialog class="analysis-dialog refresh-dialog" id="analysis-refresh-dialog" aria-labelledby="analysis-refresh-title">
+      <form id="analysis-refresh-form" method="dialog">
+        <div class="dialog-heading">
+          <div><p class="eyebrow">Gezielter Datenabruf</p><h2 id="analysis-refresh-title">Daten aktualisieren</h2></div>
+          <button class="dialog-close" id="analysis-refresh-close" type="button" aria-label="Fenster schließen">×</button>
+        </div>
+        <p id="analysis-refresh-product"></p>
+        <p class="refresh-limit-note">Jedes gesetzte Häkchen verbraucht genau eine Abfrage des Tageslimits.</p>
+        <div class="analysis-refresh-options">
+          <label>
+            <input type="checkbox" value="prices" data-refresh-section="prices" />
+            <span><strong>Kursdaten</strong><small>Historische Kursentwicklung</small></span>
+            <em>1 Abfrage</em>
+          </label>
+          <label>
+            <input type="checkbox" value="income" data-refresh-section="income" />
+            <span><strong>Ergebnisdaten</strong><small>Umsatz, operatives Ergebnis und EBITDA-Marge</small></span>
+            <em>1 Abfrage</em>
+          </label>
+          <label>
+            <input type="checkbox" value="balance" data-refresh-section="balance" />
+            <span><strong>Bilanzdaten</strong><small>Bilanzsumme, liquide Mittel und Schulden</small></span>
+            <em>1 Abfrage</em>
+          </label>
+          <label>
+            <input type="checkbox" value="cashflow" data-refresh-section="cashflow" />
+            <span><strong>Cashflow-Daten</strong><small>Operativer und freier Cashflow</small></span>
+            <em>1 Abfrage</em>
+          </label>
+        </div>
+        <p class="analysis-refresh-count" id="analysis-refresh-count">0 von 4 ausgewählt</p>
+        <p class="dialog-error" id="analysis-refresh-error" aria-live="polite"></p>
+        <div class="dialog-actions">
+          <button class="analysis-secondary-button" id="analysis-refresh-cancel" type="button">Abbrechen</button>
+          <button class="analysis-primary-button" id="analysis-refresh-submit" type="submit" disabled>OK</button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog class="analysis-dialog edit-dialog" id="analysis-edit-dialog" aria-labelledby="analysis-edit-title">
       <form id="analysis-edit-form" method="dialog" autocomplete="off">
         <div class="dialog-heading">
@@ -223,6 +262,6 @@
       </form>
     </dialog>
 
-    <script type="module" src="./js/analysis.js?v=efficient1"></script>
+    <script type="module" src="./js/analysis.js?v=request-selection1"></script>
   </body>
 </html>

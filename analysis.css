@@ -162,6 +162,19 @@
 .analysis-inline-actions .analysis-secondary-button { min-height: 38px; }
 .analysis-secondary-button.danger { color: #c42f2f; }
 .edit-dialog-actions { border-top: 1px solid var(--line); padding: 16px 0 0; }
+.refresh-dialog { width: min(600px, calc(100vw - 28px)); }
+.refresh-limit-note { margin: 0; border-left: 3px solid var(--accent); background: #fff7f1; padding: 10px 12px; color: #8b4519; font-size: 11px; line-height: 1.45; }
+.analysis-refresh-options { display: grid; gap: 8px; margin-top: 5px; }
+.analysis-refresh-options label { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 11px; margin: 0; border: 1px solid var(--line); border-radius: 11px; padding: 12px; cursor: pointer; }
+.analysis-refresh-options label:hover { background: var(--soft); }
+.analysis-refresh-options label:has(input:checked) { border-color: var(--accent); background: #fff7f1; }
+.analysis-refresh-options label:has(input:disabled) { opacity: .48; cursor: not-allowed; }
+.analysis-refresh-options input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+.analysis-refresh-options span { display: grid; gap: 3px; }
+.analysis-refresh-options strong { font-size: 12px; }
+.analysis-refresh-options small { color: var(--muted); font-size: 9px; font-weight: 600; }
+.analysis-refresh-options em { color: var(--muted); font-size: 9px; font-style: normal; font-weight: 750; white-space: nowrap; }
+.analysis-refresh-count { margin: 2px 0 0; color: var(--muted); font-size: 10px; font-weight: 750; text-align: right; }
 
 @media (max-width: 1050px) {
   .analysis-products { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -193,4 +206,6 @@
   .analysis-form-grid, .analysis-form-grid-compact { grid-template-columns: minmax(0, 1fr); }
   .analysis-inline-actions { align-items: stretch; flex-direction: column; }
   .dialog-actions { align-items: stretch; flex-direction: column-reverse; }
+  .analysis-refresh-options label { grid-template-columns: 22px minmax(0, 1fr); }
+  .analysis-refresh-options em { grid-column: 2; }
 }
