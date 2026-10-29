@@ -755,5 +755,9 @@ elements.products.addEventListener("click", (event) => {
   }
 });
 
+elements.password.value = "";
+window.addEventListener("pageshow", () => {
+  elements.password.value = "";
+});
 openDialog(elements.login);
 elements.password.focus();
