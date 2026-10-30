@@ -8,6 +8,7 @@ import {
   createAnalysisSecurity,
   getMissingAnalysisSections,
   getFiveYearFundamentals,
+  hasAnalysisData,
   mergeAnalysisSecurityData,
   normalizeWkn,
   removeAnalysisFundamental,
@@ -133,6 +134,31 @@ test("bewahrt erhaltene Teildaten und ergänzt spätere Abrufe ohne Datenverlust
   assert.equal(merged.fundamentals[0].revenue, 1200);
   assert.equal(merged.fundamentals[0].totalAssets, 4000);
   assert.deepEqual(merged.warnings, ["Bilanzdaten konnten noch nicht geladen werden."]);
+});
+
+test("bewahrt vorhandene Daten und deren Datenstand bei einem vollständig fehlgeschlagenen Abruf", () => {
+  const existing = createAnalysisSecurity({
+    id: "security-1",
+    wkn: "A2QA4J",
+    purchaseDate: "2025-03-14",
+    purchasePrice: 75.26,
+    fetchedAt: "2026-10-25T10:00:00.000Z",
+    prices: [{ date: "2025-01-03", close: 75.5 }],
+    fundamentals: [{ year: 2025, revenue: 1000 }],
+  });
+
+  const merged = mergeAnalysisSecurityData(existing, {
+    fetchedAt: "2026-10-30T21:00:00.000Z",
+    prices: [],
+    fundamentals: [],
+    warnings: ["Das tägliche Abruflimit ist erreicht."],
+  });
+
+  assert.deepEqual(merged.prices, existing.prices);
+  assert.deepEqual(merged.fundamentals, existing.fundamentals);
+  assert.equal(merged.fetchedAt, "2026-10-25T10:00:00.000Z");
+  assert.equal(hasAnalysisData(merged), true);
+  assert.equal(hasAnalysisData({ prices: [], fundamentals: [] }), false);
 });
 
 test("einzelne Kurs- und Fundamentaldaten lassen sich manuell ergänzen und entfernen", () => {

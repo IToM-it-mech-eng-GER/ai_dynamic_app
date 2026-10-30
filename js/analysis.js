@@ -7,6 +7,7 @@ import {
   getAnalysisColorIndex,
   getFiveYearFundamentals,
   getMissingAnalysisSections,
+  hasAnalysisData,
   mergeAnalysisSecurityData,
   normalizeWkn,
   removeAnalysisFundamental,
@@ -16,7 +17,7 @@ import {
   setSecurityActive,
   upsertAnalysisFundamental,
   upsertAnalysisPrice,
-} from "./analysis-model.js?v=quarterly1";
+} from "./analysis-model.js?v=partial-display1";
 
 const PASSWORD_HASH = "d82494f05d6917ba02f7aaa29689ccb444bb73f20380876cb05d1f37537b7892";
 const CACHE_AGE_MS = 24 * 60 * 60 * 1000;
@@ -263,14 +264,14 @@ function renderProducts() {
     warning.className = "analysis-data-warning";
     warning.hidden = security.warnings.length === 0;
     warning.textContent = security.warnings.length
-      ? `Teildaten gespeichert: ${security.warnings.join(" ")}`
+      ? `Abrufhinweise: ${security.warnings.join(" ")}`
       : "";
 
     const updated = document.createElement("p");
     updated.className = "analysis-updated";
-    updated.textContent = security.fetchedAt
+    updated.textContent = hasAnalysisData(security) && security.fetchedAt
       ? `Datenstand ${new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeStyle: "short" }).format(new Date(security.fetchedAt))}`
-      : "Noch kein Datenabruf";
+      : "Noch keine Kurs- oder Kennzahlen gespeichert";
 
     card.append(top, meta, dataSummary, warning, actions, updated);
     elements.products.append(card);
@@ -480,12 +481,13 @@ async function addSecurity(event) {
     const cached = findCachedSecurity(input.wkn);
     const draft = createAnalysisSecurity({ ...input, instrument: input.instrument });
     const remote = cached || await fetchAsset(draft);
+    const receivedData = hasAnalysisData(remote);
     const security = createAnalysisSecurity({
       ...input,
       id: crypto.randomUUID(),
       active: true,
       color: getAnalysisColor(state.securities.length),
-      fetchedAt: cached?.fetchedAt || remote.fetchedAt || new Date().toISOString(),
+      fetchedAt: receivedData ? cached?.fetchedAt || remote.fetchedAt || new Date().toISOString() : "",
       instrument: remote.instrument,
       prices: remote.prices,
       fundamentals: remote.fundamentals,
@@ -499,10 +501,12 @@ async function addSecurity(event) {
     setStatus(
       cached
         ? "Gespeicherte Daten wurden wiederverwendet."
-        : security.warnings.length
+        : receivedData && security.warnings.length
           ? "Alle verfügbaren Teildaten wurden lokal gespeichert. Fehlende Werte können ergänzt werden."
-          : "Wertpapierdaten wurden geladen und lokal gespeichert.",
-      "success",
+          : receivedData
+            ? "Wertpapierdaten wurden geladen und lokal gespeichert."
+            : "Es wurden keine Kurs- oder Kennzahlen geladen. Die Stammdaten wurden lokal gespeichert.",
+      receivedData ? "success" : "error",
     );
   } catch (error) {
     elements.addError.textContent = error instanceof Error ? error.message : "Die Daten konnten nicht geladen werden.";
@@ -549,19 +553,19 @@ function openRefreshDialog(security) {
 async function refreshSecurity(security, sections) {
   setStatus(`Daten für ${security.instrument.name || security.wkn} werden aktualisiert …`);
   const remote = await fetchAsset(security, sections);
+  const receivedData = hasAnalysisData(remote);
   state.securities = state.securities.map((entry) => entry.id === security.id
-    ? mergeAnalysisSecurityData(entry, {
-        ...remote,
-        fetchedAt: remote.fetchedAt || new Date().toISOString(),
-      })
+    ? mergeAnalysisSecurityData(entry, remote)
     : entry);
   saveState();
   render();
   setStatus(
-    remote.warnings?.length
+    receivedData && remote.warnings?.length
       ? "Neue Teildaten wurden ergänzt. Fehlende Werte bleiben zur Bearbeitung offen."
-      : "Die gewählten Wertpapierdaten wurden aktualisiert.",
-    "success",
+      : receivedData
+        ? "Die gewählten Wertpapierdaten wurden aktualisiert."
+        : "Es wurden keine neuen Daten geladen. Bereits gespeicherte Werte bleiben erhalten.",
+    receivedData ? "success" : "error",
   );
 }
 
