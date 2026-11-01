@@ -71,6 +71,13 @@ function normalizeWarnings(warnings) {
   return [...new Set(warnings.map((warning) => cleanText(warning, 240)).filter(Boolean))].slice(0, 12);
 }
 
+export function hasAnalysisData(input = {}) {
+  const current = createAnalysisSecurity(input);
+  return current.prices.length > 0 || current.fundamentals.some((report) =>
+    FUNDAMENTAL_FIELDS.some((field) => Number.isFinite(report[field])),
+  );
+}
+
 export function createAnalysisSecurity(input = {}) {
   const purchasePrice = finiteNumber(input.purchasePrice, 0);
   const quantity = finiteNumber(input.quantity, 1);
@@ -121,9 +128,10 @@ function mergeFundamentals(existingReports, incomingReports) {
 
 export function mergeAnalysisSecurityData(existing, incoming = {}) {
   const current = createAnalysisSecurity(existing);
+  const receivedData = hasAnalysisData(incoming);
   return createAnalysisSecurity({
     ...current,
-    fetchedAt: cleanText(incoming.fetchedAt, 32) || current.fetchedAt,
+    fetchedAt: receivedData ? cleanText(incoming.fetchedAt, 32) || current.fetchedAt : current.fetchedAt,
     instrument: mergeInstrument(current.instrument, incoming.instrument),
     prices: [...current.prices, ...(Array.isArray(incoming.prices) ? incoming.prices : [])],
     fundamentals: mergeFundamentals(current.fundamentals, incoming.fundamentals),
