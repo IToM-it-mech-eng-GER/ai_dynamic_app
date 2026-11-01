@@ -6,6 +6,8 @@ Die Eingaben lassen sich ein- und ausklappen. Auf kleinen Bildschirmen können d
 
 Der getrennte Bereich **Analyse** verwaltet Aktien und ETFs über WKN, Kaufdatum, Kaufpreis und Stückzahl. Abgerufene Kurs- und Fundamentaldaten werden im Browser gespeichert. Aktive Produkte werden entsprechend ihrer gehaltenen Anteile in einem gemeinsamen transparenten Flächendiagramm dargestellt; acht Unternehmenskennzahlen zeigen bis zu fünf Geschäftsjahre. Für ETFs sind Fundamentaldaten häufig nicht verfügbar.
 
+Unter **Daten herunterladen** lässt sich der gesamte Analysestand als JSON-Datei sichern. **Daten laden** ergänzt diese Sicherung im aktuellen Browser, auch auf der GitHub-Seite. Bereits vorhandene Kurswerte und Kennzahlen bleiben beim Zusammenführen erhalten. Lokale Vorschau und GitHub-Seite haben getrennte Browserspeicher; der Dateitransfer funktioniert ohne weitere Anbieterabfrage. Einzelne Kurswerte werden als Punkte angezeigt. Browser-Tabs derselben Adresse übernehmen gespeicherte Änderungen automatisch. Bei ausgeschöpftem Anbieterlimit können vorhandene Daten weiterhin angezeigt, bearbeitet und heruntergeladen werden; fehlende Werte entstehen dadurch nicht automatisch.
+
 ## Lokal starten
 
 ```bash

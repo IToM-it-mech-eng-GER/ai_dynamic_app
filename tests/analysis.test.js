@@ -9,6 +9,7 @@ import {
   getMissingAnalysisSections,
   getFiveYearFundamentals,
   hasAnalysisData,
+  importAnalysisState,
   mergeAnalysisSecurityData,
   normalizeWkn,
   removeAnalysisFundamental,
@@ -19,6 +20,27 @@ import {
   upsertAnalysisFundamental,
   upsertAnalysisPrice,
 } from "../js/analysis-model.js";
+
+test("überträgt eine Datensicherung in einen anderen Browser ohne vorhandene Teilwerte zu verlieren", () => {
+  const existing = createAnalysisSecurity({ id: "local", wkn: "A2QA4J", purchaseDate: "2025-03-14", purchasePrice: 75.26,
+    quantity: 30, prices: [{ date: "2025-03-14", close: 75.5 }], fundamentals: [{ year: 2025, debt: 229 }] });
+  const incoming = createAnalysisSecurity({ ...existing, id: "online", prices: [{ date: "2025-06-30", close: 80 }],
+    fundamentals: [{ year: 2025, revenue: 4500, debt: null }] });
+  const result = importAnalysisState({ securities: [existing] }, serializeAnalysisState({ securities: [incoming] }));
+  assert.equal(result.securities.length, 1);
+  assert.equal(result.securities[0].id, "local");
+  assert.equal(result.securities[0].quantity, 30);
+  assert.equal(result.securities[0].prices.length, 2);
+  assert.equal(result.securities[0].fundamentals[0].debt, 229);
+  assert.equal(result.securities[0].fundamentals[0].revenue, 4500);
+  assert.deepEqual(importAnalysisState({ securities: [] }, serializeAnalysisState(result)), result);
+});
+
+test("lehnt fremde oder beschädigte Datensicherungen ab", () => {
+  for (const value of ["kein JSON", "{}", '{"securities":[]}', '{"securities":[{"wkn":"ungültig"}]}']) {
+    assert.throws(() => importAnalysisState({ securities: [] }, value), /Datensicherung/);
+  }
+});
 
 test("ermittelt nur die noch fehlenden Online-Datenbereiche", () => {
   const security = createAnalysisSecurity({
