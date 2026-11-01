@@ -195,6 +195,35 @@ export function readAnalysisState(serialized) {
   }
 }
 
+export function importAnalysisState(currentState, serialized) {
+  let parsed;
+  try {
+    parsed = JSON.parse(serialized);
+  } catch {
+    throw new Error("Die Datei ist keine gültige Datensicherung.");
+  }
+  if (!Array.isArray(parsed?.securities) || !parsed.securities.length || parsed.securities.length > 500) {
+    throw new Error("Die Datensicherung muss zwischen 1 und 500 Wertpapiere enthalten.");
+  }
+  const incoming = readAnalysisState(serialized).securities;
+  if (incoming.length !== parsed.securities.length || incoming.some(entry => !entry.purchaseDate || !entry.purchasePrice)) {
+    throw new Error("Die Datensicherung enthält ungültige Wertpapierdaten.");
+  }
+  const securities = readAnalysisState(serializeAnalysisState(currentState)).securities;
+  incoming.forEach(entry => {
+    const index = securities.findIndex(existing => existing.wkn === entry.wkn
+      && existing.purchaseDate === entry.purchaseDate && existing.purchasePrice === entry.purchasePrice
+      && existing.quantity === entry.quantity);
+    if (index >= 0) {
+      securities[index] = mergeAnalysisSecurityData(securities[index], entry);
+    } else {
+      if (securities.some(existing => existing.id === entry.id)) entry.id = crypto.randomUUID();
+      securities.push(entry);
+    }
+  });
+  return { securities };
+}
+
 export function setSecurityActive(securities, id, active) {
   return securities.map((security) =>
     security.id === id ? { ...security, active: Boolean(active) } : security,

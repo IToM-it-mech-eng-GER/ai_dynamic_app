@@ -1,4 +1,4 @@
-import { buildStackedSeries, getAnalysisColorIndex } from "./analysis-model.js?v=quarterly1";
+import { buildStackedSeries, getAnalysisColorIndex } from "./analysis-model.js?v=data-transfer1";
 
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 const WIDTH = 1040;
@@ -30,6 +30,7 @@ function scaleDate(date, firstDate, lastDate) {
   const last = Date.parse(lastDate);
   const current = Date.parse(date);
   const width = WIDTH - MARGIN.left - MARGIN.right;
+  if (first === last) return MARGIN.left + width / 2;
   return MARGIN.left + ((current - first) / Math.max(1, last - first)) * width;
 }
 
@@ -111,6 +112,18 @@ export function renderAnalysisChart(svg, legend, description, securities) {
       class: "analysis-area-line",
     });
     svg.append(area, line);
+    points.forEach(point => {
+      const marker = svgElement("circle", {
+        cx: scaleDate(point.date, firstDate, lastDate),
+        cy: scaleValue(point.top, maxValue),
+        r: points.length === 1 ? 5 : 3,
+        fill: layer.color,
+      });
+      const title = svgElement("title");
+      title.textContent = `${layer.name} · ${formatDate(point.date)} · ${formatMoney(point.value)}`;
+      marker.append(title);
+      svg.append(marker);
+    });
 
     const legendItem = document.createElement("span");
     const swatch = document.createElement("i");
@@ -119,5 +132,7 @@ export function renderAnalysisChart(svg, legend, description, securities) {
     legend.append(legendItem);
   });
 
-  description.textContent = `${chart.layers.length} aktive Wertpapiere von ${formatDate(firstDate)} bis ${formatDate(lastDate)}.`;
+  description.textContent = chart.dates.length === 1
+    ? `Einzelner gespeicherter Wert vom ${formatDate(firstDate)}. Weitere Kurse fehlen noch.`
+    : `${chart.layers.length} aktive Wertpapiere von ${formatDate(firstDate)} bis ${formatDate(lastDate)}.`;
 }

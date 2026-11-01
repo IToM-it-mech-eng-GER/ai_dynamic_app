@@ -15,7 +15,7 @@
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23070f20'/%3E%3Cpath d='M15 43 27 31l8 7 14-17' fill='none' stroke='%23ff6b16' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
     />
     <link rel="stylesheet" href="./styles.css?v=fund-switch-graph1" />
-    <link rel="stylesheet" href="./analysis.css?v=request-selection1" />
+    <link rel="stylesheet" href="./analysis.css?v=data-transfer1" />
   </head>
   <body class="analysis-body">
     <a class="skip-link" href="#analysis-main">Direkt zum Inhalt</a>
@@ -50,6 +50,13 @@
 
       <p class="analysis-status" id="analysis-status" aria-live="polite"></p>
 
+      <div class="analysis-data-tools" aria-label="Datensicherung">
+        <button class="analysis-secondary-button" id="analysis-export" type="button">Daten herunterladen</button>
+        <button class="analysis-secondary-button" id="analysis-import" type="button">Daten laden</button>
+        <input id="analysis-import-file" type="file" accept=".json,application/json" hidden />
+        <span>Alle Wertpapiere und vorhandenen Zahlen sichern oder auf einem anderen Gerät laden.</span>
+      </div>
+
       <section class="analysis-products-section" aria-labelledby="analysis-products-title">
         <div class="analysis-section-heading">
           <div>
@@ -83,7 +90,7 @@
           ></svg>
         </div>
         <div class="analysis-chart-legend" id="analysis-chart-legend"></div>
-        <p class="sr-only" id="analysis-chart-description" aria-live="polite"></p>
+        <p class="analysis-chart-note" id="analysis-chart-description" aria-live="polite"></p>
       </section>
 
       <section class="analysis-fundamentals" aria-labelledby="fundamentals-title">
@@ -262,6 +269,6 @@
       </form>
     </dialog>
 
-    <script type="module" src="./js/analysis.js?v=partial-display1"></script>
+    <script type="module" src="./js/analysis.js?v=data-transfer1"></script>
   </body>
 </html>

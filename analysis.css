@@ -64,6 +64,9 @@
 .analysis-status { min-height: 19px; margin: -12px 0 8px; color: var(--muted); font-size: 12px; }
 .analysis-status[data-kind="success"] { color: var(--positive); }
 .analysis-status[data-kind="error"] { color: var(--negative); }
+.analysis-data-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 18px 0; }
+.analysis-data-tools > span { color: var(--muted); font-size: 12px; flex: 1 1 260px; line-height: 1.5; }
+.analysis-data-tools button:disabled { opacity: .5; cursor: default; }
 .analysis-chart-panel { padding: 28px 28px 18px; }
 .analysis-chart-wrap { width: 100%; overflow: hidden; }
 #analysis-chart { display: block; width: 100%; min-width: 0; height: auto; }
@@ -72,6 +75,7 @@
 .analysis-area { opacity: .2; }
 .analysis-area-line { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
 .analysis-chart-empty { fill: #8d97a8; font-size: 14px; }
+.analysis-chart-note { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 10px 0 0; }
 .analysis-chart-legend { display: flex; flex-wrap: wrap; gap: 10px 20px; padding: 8px 0 2px 72px; }
 .analysis-chart-legend span { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; }
 .analysis-chart-legend i { width: 9px; height: 9px; border-radius: 3px; background: var(--product-color); }

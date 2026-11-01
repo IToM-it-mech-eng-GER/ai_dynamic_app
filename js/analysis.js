@@ -1,5 +1,5 @@
 import { ANALYSIS_API_BASE_URL } from "./analysis-config.js?v=api1";
-import { renderAnalysisChart } from "./analysis-chart.js?v=quarterly1";
+import { renderAnalysisChart } from "./analysis-chart.js?v=data-transfer1";
 import {
   ANALYSIS_STORAGE_KEY,
   createAnalysisSecurity,
@@ -8,6 +8,7 @@ import {
   getFiveYearFundamentals,
   getMissingAnalysisSections,
   hasAnalysisData,
+  importAnalysisState,
   mergeAnalysisSecurityData,
   normalizeWkn,
   removeAnalysisFundamental,
@@ -17,7 +18,7 @@ import {
   setSecurityActive,
   upsertAnalysisFundamental,
   upsertAnalysisPrice,
-} from "./analysis-model.js?v=partial-display1";
+} from "./analysis-model.js?v=data-transfer1";
 
 const PASSWORD_HASH = "d82494f05d6917ba02f7aaa29689ccb444bb73f20380876cb05d1f37537b7892";
 const CACHE_AGE_MS = 24 * 60 * 60 * 1000;
@@ -66,6 +67,9 @@ const elements = {
   refreshError: document.querySelector("#analysis-refresh-error"),
   refreshSections: [...document.querySelectorAll("[data-refresh-section]")],
   status: document.querySelector("#analysis-status"),
+  exportButton: document.querySelector("#analysis-export"),
+  importButton: document.querySelector("#analysis-import"),
+  importFile: document.querySelector("#analysis-import-file"),
   products: document.querySelector("#analysis-products"),
   empty: document.querySelector("#analysis-empty"),
   count: document.querySelector("#analysis-count"),
@@ -122,7 +126,40 @@ async function hashText(value) {
 }
 
 function saveState() {
-  localStorage.setItem(ANALYSIS_STORAGE_KEY, serializeAnalysisState(state));
+  try {
+    localStorage.setItem(ANALYSIS_STORAGE_KEY, serializeAnalysisState(state));
+  } catch {
+    throw new Error("Die Daten werden angezeigt, konnten aber nicht im Browser gespeichert werden. Bitte über „Daten herunterladen“ sichern.");
+  }
+}
+
+function downloadAnalysisData() {
+  const file = new Blob([serializeAnalysisState(state)], { type: "application/json" });
+  const url = URL.createObjectURL(file);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `renditeatlas-daten-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setStatus("Die Datensicherung wurde zum Herunterladen bereitgestellt. Mit „Daten laden“ kannst du sie auch auf der GitHub-Seite öffnen.", "success");
+}
+
+async function importAnalysisFile() {
+  const file = elements.importFile.files?.[0];
+  if (!file) return;
+  try {
+    if (file.size > 10 * 1024 * 1024) throw new Error("Die Datensicherung darf höchstens 10 MB groß sein.");
+    state = importAnalysisState(state, await file.text());
+    render();
+    saveState();
+    setStatus("Die Daten wurden ergänzt, angezeigt und im Browser gespeichert. Vorhandene Teilwerte bleiben erhalten.", "success");
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "Die Datei konnte nicht geladen werden.", "error");
+  } finally {
+    elements.importFile.value = "";
+  }
 }
 
 function setStatus(message, kind = "") {
@@ -166,12 +203,8 @@ function isFresh(security) {
 }
 
 function findCachedSecurity(wkn) {
-  return state.securities.find((security) =>
-    security.wkn === wkn
-    && isFresh(security)
-    && security.prices.length > 0
-    && security.warnings.length === 0,
-  );
+  const matches = state.securities.filter(security => security.wkn === wkn && hasAnalysisData(security));
+  return matches.find(isFresh) || matches[0];
 }
 
 async function fetchAsset(security, sections = getMissingAnalysisSections(security)) {
@@ -271,7 +304,7 @@ function renderProducts() {
     updated.className = "analysis-updated";
     updated.textContent = hasAnalysisData(security) && security.fetchedAt
       ? `Datenstand ${new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeStyle: "short" }).format(new Date(security.fetchedAt))}`
-      : "Noch keine Kurs- oder Kennzahlen gespeichert";
+      : hasAnalysisData(security) ? "Vorhandene Daten lokal gespeichert" : "Noch keine Kurs- oder Kennzahlen gespeichert";
 
     card.append(top, meta, dataSummary, warning, actions, updated);
     elements.products.append(card);
@@ -348,6 +381,7 @@ function renderFundamentals() {
 }
 
 function render() {
+  elements.exportButton.disabled = state.securities.length === 0;
   state.securities.forEach((security, index) => {
     if (!security.color) security.color = getAnalysisColor(index);
   });
@@ -458,8 +492,8 @@ function addManualSecurity() {
     },
   });
   state.securities.push(security);
-  saveState();
   render();
+  saveState();
   elements.addForm.reset();
   closeDialog(elements.addDialog);
   setStatus("Der leere Datensatz wurde lokal angelegt und kann jetzt ergänzt werden.", "success");
@@ -494,8 +528,8 @@ async function addSecurity(event) {
       warnings: remote.warnings,
     });
     state.securities.push(security);
-    saveState();
     render();
+    saveState();
     elements.addForm.reset();
     closeDialog(elements.addDialog);
     setStatus(
@@ -557,8 +591,8 @@ async function refreshSecurity(security, sections) {
   state.securities = state.securities.map((entry) => entry.id === security.id
     ? mergeAnalysisSecurityData(entry, remote)
     : entry);
-  saveState();
   render();
+  saveState();
   setStatus(
     receivedData && remote.warnings?.length
       ? "Neue Teildaten wurden ergänzt. Fehlende Werte bleiben zur Bearbeitung offen."
@@ -715,6 +749,14 @@ elements.addButton.addEventListener("click", () => {
   elements.purchaseDate.max = new Date().toISOString().slice(0, 10);
   openDialog(elements.addDialog);
   elements.wkn.focus();
+});
+elements.exportButton.addEventListener("click", downloadAnalysisData);
+elements.importButton.addEventListener("click", () => elements.importFile.click());
+elements.importFile.addEventListener("change", importAnalysisFile);
+window.addEventListener("storage", event => {
+  if (event.key !== ANALYSIS_STORAGE_KEY && event.key !== null) return;
+  state = readAnalysisState(event.newValue);
+  render();
 });
 elements.addClose.addEventListener("click", () => closeDialog(elements.addDialog));
 elements.addCancel.addEventListener("click", () => closeDialog(elements.addDialog));
