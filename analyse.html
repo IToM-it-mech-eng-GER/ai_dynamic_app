@@ -15,7 +15,7 @@
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23070f20'/%3E%3Cpath d='M15 43 27 31l8 7 14-17' fill='none' stroke='%23ff6b16' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
     />
     <link rel="stylesheet" href="./styles.css?v=fund-switch-graph1" />
-    <link rel="stylesheet" href="./analysis.css?v=data-transfer1" />
+    <link rel="stylesheet" href="./analysis.css?v=sequential1" />
   </head>
   <body class="analysis-body">
     <a class="skip-link" href="#analysis-main">Direkt zum Inhalt</a>
@@ -49,6 +49,7 @@
       </section>
 
       <p class="analysis-status" id="analysis-status" aria-live="polite"></p>
+      <ol class="analysis-download-results" id="analysis-download-results" aria-label="Ergebnisse der Teilabrufe" aria-live="polite" hidden></ol>
 
       <div class="analysis-data-tools" aria-label="Datensicherung">
         <button class="analysis-secondary-button" id="analysis-export" type="button">Daten herunterladen</button>
@@ -164,7 +165,7 @@
           <button class="dialog-close" id="analysis-refresh-close" type="button" aria-label="Fenster schließen">×</button>
         </div>
         <p id="analysis-refresh-product"></p>
-        <p class="refresh-limit-note">Jedes Häkchen benötigt höchstens eine Anbieterabfrage. Bereits zwischengespeicherte Antworten werden wiederverwendet.</p>
+        <p class="refresh-limit-note">Die ausgewählten Bereiche werden einzeln nacheinander abgerufen. Jede Antwort wird vor dem nächsten Abruf gespeichert und angezeigt. Jedes Häkchen benötigt höchstens eine Anbieterabfrage; zwischengespeicherte Antworten werden wiederverwendet.</p>
         <div class="analysis-refresh-options">
           <label>
             <input type="checkbox" value="prices" data-refresh-section="prices" />
@@ -270,6 +271,6 @@
       </form>
     </dialog>
 
-    <script type="module" src="./js/analysis.js?v=service-check1"></script>
+    <script type="module" src="./js/analysis.js?v=sequential1"></script>
   </body>
 </html>

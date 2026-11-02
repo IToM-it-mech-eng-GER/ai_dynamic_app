@@ -1,5 +1,6 @@
 import { ANALYSIS_API_BASE_URL } from "./analysis-config.js?v=api1";
 import { renderAnalysisChart } from "./analysis-chart.js?v=data-transfer1";
+import { downloadAnalysisSections, ANALYSIS_SECTION_LABELS } from "./analysis-download.js?v=sequential1";
 import {
   ANALYSIS_STORAGE_KEY,
   createAnalysisSecurity,
@@ -10,7 +11,6 @@ import {
   hasAnalysisData,
   importAnalysisState,
   validateAnalysisService,
-  mergeAnalysisSecurityData,
   normalizeWkn,
   removeAnalysisFundamental,
   removeAnalysisPrice,
@@ -68,6 +68,7 @@ const elements = {
   refreshError: document.querySelector("#analysis-refresh-error"),
   refreshSections: [...document.querySelectorAll("[data-refresh-section]")],
   status: document.querySelector("#analysis-status"),
+  downloadResults: document.querySelector("#analysis-download-results"),
   exportButton: document.querySelector("#analysis-export"),
   importButton: document.querySelector("#analysis-import"),
   importFile: document.querySelector("#analysis-import-file"),
@@ -110,6 +111,7 @@ const elements = {
 let state = readAnalysisState(localStorage.getItem(ANALYSIS_STORAGE_KEY));
 let editingSecurity = null;
 let refreshingSecurity = null;
+let downloading = false;
 
 function openDialog(dialog) {
   if (typeof dialog.showModal === "function") dialog.showModal();
@@ -209,8 +211,7 @@ function findCachedSecurity(wkn) {
   return matches.find(isFresh) || matches[0];
 }
 
-async function fetchAsset(security, sections = getMissingAnalysisSections(security)) {
-  await checkAnalysisService();
+async function fetchAsset(security, sections) {
   const url = new URL("asset", `${ANALYSIS_API_BASE_URL.replace(/\/$/, "")}/`);
   url.searchParams.set("wkn", security.wkn);
   if (sections.length) url.searchParams.set("sections", sections.join(","));
@@ -270,6 +271,7 @@ function renderProducts() {
     const activeInput = document.createElement("input");
     activeInput.type = "checkbox";
     activeInput.checked = security.active;
+    activeInput.disabled = downloading;
     activeInput.dataset.action = "toggle";
     activeInput.dataset.id = security.id;
     const switchElement = document.createElement("i");
@@ -299,6 +301,7 @@ function renderProducts() {
       createButton("Aktualisieren", "analysis-card-button", "refresh", security.id),
       createButton("Entfernen", "analysis-card-button danger", "remove", security.id),
     );
+    actions.querySelectorAll("button").forEach(button => { button.disabled = downloading; });
 
     const dataSummary = document.createElement("p");
     dataSummary.className = "analysis-data-summary";
@@ -393,6 +396,9 @@ function renderFundamentals() {
 
 function render() {
   elements.exportButton.disabled = state.securities.length === 0;
+  elements.addButton.disabled = downloading;
+  elements.importButton.disabled = downloading;
+  elements.serviceCheck.disabled = downloading;
   state.securities.forEach((security, index) => {
     if (!security.color) security.color = getAnalysisColor(index);
   });
@@ -513,6 +519,7 @@ function addManualSecurity() {
 
 async function addSecurity(event) {
   event.preventDefault();
+  if (downloading) return;
   elements.addError.textContent = "";
   const { input, error: inputError } = readNewSecurityInput();
   if (inputError) {
@@ -524,37 +531,28 @@ async function addSecurity(event) {
   elements.addSubmit.textContent = "Daten werden geladen …";
   try {
     const cached = findCachedSecurity(input.wkn);
-    const draft = createAnalysisSecurity({ ...input, instrument: input.instrument });
-    const remote = cached || await fetchAsset(draft);
-    const receivedData = hasAnalysisData(remote);
     const security = createAnalysisSecurity({
       ...input,
       id: crypto.randomUUID(),
       active: true,
       color: getAnalysisColor(state.securities.length),
-      fetchedAt: receivedData ? cached?.fetchedAt || remote.fetchedAt || new Date().toISOString() : "",
-      instrument: remote.instrument,
-      prices: remote.prices,
-      fundamentals: remote.fundamentals,
-      warnings: remote.warnings,
+      fetchedAt: cached?.fetchedAt,
+      instrument: cached?.instrument || input.instrument,
+      prices: cached?.prices,
+      fundamentals: cached?.fundamentals,
+      warnings: cached?.warnings,
     });
     state.securities.push(security);
     render();
     saveState();
     elements.addForm.reset();
     closeDialog(elements.addDialog);
-    setStatus(
-      cached
-        ? "Gespeicherte Daten wurden wiederverwendet."
-        : receivedData && security.warnings.length
-          ? "Alle verfügbaren Teildaten wurden lokal gespeichert. Fehlende Werte können ergänzt werden."
-          : receivedData
-            ? "Wertpapierdaten wurden geladen und lokal gespeichert."
-            : "Es wurden keine Kurs- oder Kennzahlen geladen. Die Stammdaten wurden lokal gespeichert.",
-      receivedData ? "success" : "error",
-    );
+    if (cached) setStatus("Gespeicherte Daten wurden wiederverwendet.", "success");
+    else await refreshSecurity(security, getMissingAnalysisSections(security));
   } catch (error) {
-    elements.addError.textContent = error instanceof Error ? error.message : "Die Daten konnten nicht geladen werden.";
+    const message = error instanceof Error ? error.message : "Die Daten konnten nicht geladen werden.";
+    elements.addError.textContent = message;
+    setStatus(message, "error");
   } finally {
     elements.addSubmit.disabled = false;
     elements.addSubmit.textContent = "Abrufen & hinzufügen";
@@ -596,34 +594,51 @@ function openRefreshDialog(security) {
 }
 
 async function refreshSecurity(security, sections) {
-  setStatus(`Daten für ${security.instrument.name || security.wkn} werden aktualisiert …`);
-  const remote = await fetchAsset(security, sections);
-  const receivedData = hasAnalysisData(remote);
-  state.securities = state.securities.map((entry) => entry.id === security.id
-    ? mergeAnalysisSecurityData(entry, remote)
-    : entry);
+  if (downloading) return;
+  downloading = true;
+  elements.downloadResults.replaceChildren();
+  elements.downloadResults.hidden = false;
   render();
-  saveState();
-  setStatus(
-    receivedData && remote.warnings?.length
-      ? "Neue Teildaten wurden ergänzt. Fehlende Werte bleiben zur Bearbeitung offen."
-      : receivedData
-        ? "Die gewählten Wertpapierdaten wurden aktualisiert."
-        : "Es wurden keine neuen Daten geladen. Bereits gespeicherte Werte bleiben erhalten.",
-    receivedData ? "success" : "error",
-  );
+  try {
+    setStatus("Datendienst wird geprüft …");
+    await checkAnalysisService();
+    const result = await downloadAnalysisSections(security, sections, {
+      fetchSection: fetchAsset,
+      onStart(section, index, total) {
+        setStatus(`${index} von ${total}: ${ANALYSIS_SECTION_LABELS[section]} werden geladen …`);
+      },
+      async onResponse(current, outcome) {
+        state.securities = state.securities.map(entry => entry.id === security.id ? current : entry);
+        render();
+        saveState();
+        const entry = document.createElement("li");
+        entry.dataset.kind = outcome.received ? "success" : "error";
+        entry.textContent = outcome.received
+          ? `${ANALYSIS_SECTION_LABELS[outcome.section]}: ${outcome.section === "prices" ? `${outcome.prices} Kurswerte` : `${outcome.years} Geschäftsjahre`} erhalten, gespeichert und angezeigt.${outcome.warnings.length ? ` ${outcome.warnings.join(" ")}` : ""}`
+          : `${ANALYSIS_SECTION_LABELS[outcome.section]}: Keine neuen Zahlen. ${outcome.warnings.join(" ")}`;
+        elements.downloadResults.append(entry);
+        await new Promise(resolve => setTimeout(resolve, 0));
+      },
+    });
+    const received = result.outcomes.filter(outcome => outcome.received).length;
+    setStatus(`${received} von ${result.outcomes.length} Teilantworten mit Zahlen gespeichert. Vorhandene Werte bleiben erhalten.`, received ? "success" : "error");
+  } finally {
+    downloading = false;
+    render();
+  }
 }
 
 async function submitRefreshSelection(event) {
   event.preventDefault();
   const sections = selectedRefreshSections();
-  if (!refreshingSecurity || sections.length === 0) return;
+  if (!refreshingSecurity || sections.length === 0 || downloading) return;
+  const security = refreshingSecurity;
   elements.refreshSubmit.disabled = true;
   elements.refreshSubmit.textContent = "Abruf läuft …";
   elements.refreshError.textContent = "";
+  closeRefreshDialog();
   try {
-    await refreshSecurity(refreshingSecurity, sections);
-    closeRefreshDialog();
+    await refreshSecurity(security, sections);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Die Aktualisierung ist fehlgeschlagen.";
     elements.refreshError.textContent = message;

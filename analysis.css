@@ -64,6 +64,9 @@
 .analysis-status { min-height: 19px; margin: -12px 0 8px; color: var(--muted); font-size: 12px; }
 .analysis-status[data-kind="success"] { color: var(--positive); }
 .analysis-status[data-kind="error"] { color: var(--negative); }
+.analysis-download-results { margin: 0 0 16px; padding-left: 22px; font-size: 12px; line-height: 1.6; }
+.analysis-download-results li[data-kind="success"] { color: var(--positive); }
+.analysis-download-results li[data-kind="error"] { color: var(--negative); }
 .analysis-data-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 18px 0; }
 .analysis-data-tools > span { color: var(--muted); font-size: 12px; flex: 1 1 260px; line-height: 1.5; }
 .analysis-data-tools button:disabled { opacity: .5; cursor: default; }
