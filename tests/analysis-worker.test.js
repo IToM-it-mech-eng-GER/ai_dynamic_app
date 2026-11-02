@@ -11,6 +11,58 @@ import {
   selectAlphaMatch,
   validateWkn,
 } from "../worker/worker.js";
+import worker from "../worker/worker.js";
+
+test("prüft Dienstversion und Konfiguration ohne einen einzigen Datenanbieterabruf", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error("Kein Datenanbieterabruf erlaubt"); };
+  try {
+    const response = await worker.fetch(new Request("https://example.workers.dev/status", {
+      headers: { Origin: "http://127.0.0.1:4177" },
+    }), { ALLOWED_ORIGINS: "http://127.0.0.1:4177", ALPHA_VANTAGE_API_KEY: "test-key" }, {});
+    assert.equal(response.status, 200);
+    const data = await response.json();
+    assert.equal(data.apiVersion, 2);
+    assert.equal(data.marketDataConfigured, true);
+    assert.doesNotMatch(JSON.stringify(data), /test-key/);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("verwirft vorhandene Unternehmenszahlen nicht wegen eines zusätzlichen Anbieterhinweises", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    Information: "Please contact us if you are targeting a higher API call volume.",
+    annualReports: [{ fiscalDateEnding: "2025-12-31", totalRevenue: "1000" }],
+  }));
+  try {
+    const data = await alphaRequest("INCOME_STATEMENT", { symbol: "PLTR" }, "test-key", null);
+    assert.equal(data.annualReports[0].totalRevenue, "1000");
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("erkennt einen Tariffehler auch wenn derselbe Hinweis für mehr Abrufvolumen wirbt", () => {
+  assert.match(alphaProviderError({ Information: "This is a premium endpoint. Contact us for higher API call volume." }), /kostenpflichtigen Zugang/);
+  assert.doesNotMatch(alphaProviderError({ Information: "Contact us for higher API call volume." }), /tägliche/);
+});
+
+test("speichert eine leere Anbieterantwort nicht als erfolgreich geladene Daten", async () => {
+  const originalFetch = globalThis.fetch;
+  let writes = 0;
+  globalThis.fetch = async () => new Response(JSON.stringify({ "Weekly Adjusted Time Series": {} }));
+  try {
+    await assert.rejects(alphaRequest("TIME_SERIES_WEEKLY_ADJUSTED", { symbol: "PLTR" }, "test-key", {
+      async match() { return null; }, async put() { writes += 1; },
+    }), /keine verwendbaren Werte/);
+    assert.equal(writes, 0);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("lehnt eine ungültige Bereichsauswahl ohne versteckten Vollabruf ab", async () => {
+  const response = await worker.fetch(new Request("https://example.workers.dev/asset?wkn=A2QA4J&sections=falsch", {
+    headers: { Origin: "http://127.0.0.1:4177" },
+  }), { ALLOWED_ORIGINS: "http://127.0.0.1:4177", ALPHA_VANTAGE_API_KEY: "test-key" }, {});
+  assert.equal(response.status, 400);
+});
 
 test("liefert jeden erfolgreichen Teilabruf auch bei späterem Anbieterlimit zurück", async () => {
   const originalFetch = globalThis.fetch;
@@ -127,7 +179,7 @@ test("verwendet erfolgreich geladene Anbieterdaten bei einem erneuten Abruf wied
   };
   globalThis.fetch = async (url) => {
     requests.push(String(url));
-    return new Response(JSON.stringify({ "Weekly Time Series": {} }), {
+    return new Response(JSON.stringify({ "Weekly Time Series": { "2025-01-03": { "4. close": "75.5" } } }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -152,7 +204,7 @@ test("ruft den Anbieter auch bei einem nicht lesbaren Zwischenspeicher ab", asyn
   console.warn = () => {};
   globalThis.fetch = async () => {
     requestCount += 1;
-    return new Response(JSON.stringify({ "Weekly Time Series": {} }), { status: 200 });
+    return new Response(JSON.stringify({ "Weekly Time Series": { "2025-01-03": { "4. close": "75.5" } } }), { status: 200 });
   };
 
   try {
@@ -185,7 +237,7 @@ test("unterscheidet Schlüssel-, Tarif- und Limitfehler des Marktdatenanbieters"
   );
   assert.match(
     alphaProviderError({ Information: "Please contact premium@example.com if you are targeting a higher API call volume." }),
-    /tägliche Abruflimit/,
+    /Anfrage abgelehnt/,
   );
 });
 

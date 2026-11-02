@@ -8,6 +8,8 @@ Der getrennte Bereich **Analyse** verwaltet Aktien und ETFs über WKN, Kaufdatum
 
 Unter **Daten herunterladen** lässt sich der gesamte Analysestand als JSON-Datei sichern. **Daten laden** ergänzt diese Sicherung im aktuellen Browser, auch auf der GitHub-Seite. Bereits vorhandene Kurswerte und Kennzahlen bleiben beim Zusammenführen erhalten. Lokale Vorschau und GitHub-Seite haben getrennte Browserspeicher; der Dateitransfer funktioniert ohne weitere Anbieterabfrage. Einzelne Kurswerte werden als Punkte angezeigt. Browser-Tabs derselben Adresse übernehmen gespeicherte Änderungen automatisch. Bei ausgeschöpftem Anbieterlimit können vorhandene Daten weiterhin angezeigt, bearbeitet und heruntergeladen werden; fehlende Werte entstehen dadurch nicht automatisch.
 
+Beim Hinzufügen und unter **Aktualisieren** laufen die gewählten Bereiche einzeln nacheinander. Jede Antwort wird zusammengeführt, im Browser gespeichert und sofort angezeigt, bevor der nächste Abruf beginnt. Die Ergebnisliste zeigt je Bereich die erhaltenen Kurswerte oder Geschäftsjahre beziehungsweise den Fehler. Ein fehlgeschlagener Bereich löscht keine zuvor empfangenen Zahlen. Kann die Speicherung nicht abgeschlossen werden, startet kein weiterer Teilabruf. Gleichzeitige Abrufserien sind gesperrt; die Datensicherung kann währenddessen weiter heruntergeladen werden.
+
 ## Lokal starten
 
 ```bash
@@ -45,6 +47,8 @@ Den Projektinhalt in ein GitHub-Repository übertragen und unter **Settings → 
 ## Online-Daten der Analyse
 
 Der Ordner `worker/` enthält den vorgesehenen Cloudflare-Dienst. Er löst WKN über OpenFIGI auf, lädt Kurs- und Unternehmensdaten von Alpha Vantage und speichert erfolgreiche Antworten 24 Stunden im Cloudflare-Cache. Der Browser speichert die bereits geladenen Daten zusätzlich lokal.
+
+**Datendienst prüfen** kontrolliert ausschließlich die Erreichbarkeit, die Dienstversion und ob der Zugangsschlüssel in Cloudflare hinterlegt ist. Dabei werden weder OpenFIGI noch Alpha Vantage angesprochen; die Gültigkeit des Schlüssels wird dadurch noch nicht bestätigt. Vor jedem tatsächlichen Datenabruf führt die App dieselbe Prüfung aus. Der aktuelle Worker muss zusammen mit der Webseite veröffentlicht werden, sonst wird der Anbieterabruf unterbunden. Leere Antworten werden nicht als geladene Daten zwischengespeichert. Tarifprobleme, kurzfristige Abrufbeschränkungen und Tageslimits werden getrennt gemeldet. Bereits gelieferte Zahlen werden auch dann verarbeitet, wenn die Antwort einen zusätzlichen Anbieterhinweis enthält.
 
 Für den Betrieb sind folgende Schritte nötig:
 
