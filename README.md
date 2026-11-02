@@ -46,6 +46,8 @@ Den Projektinhalt in ein GitHub-Repository übertragen und unter **Settings → 
 
 Der Ordner `worker/` enthält den vorgesehenen Cloudflare-Dienst. Er löst WKN über OpenFIGI auf, lädt Kurs- und Unternehmensdaten von Alpha Vantage und speichert erfolgreiche Antworten 24 Stunden im Cloudflare-Cache. Der Browser speichert die bereits geladenen Daten zusätzlich lokal.
 
+**Datendienst prüfen** kontrolliert ausschließlich die Erreichbarkeit, die Dienstversion und ob der Zugangsschlüssel in Cloudflare hinterlegt ist. Dabei werden weder OpenFIGI noch Alpha Vantage angesprochen; die Gültigkeit des Schlüssels wird dadurch noch nicht bestätigt. Vor jedem tatsächlichen Datenabruf führt die App dieselbe Prüfung aus. Der aktuelle Worker muss zusammen mit der Webseite veröffentlicht werden, sonst wird der Anbieterabruf unterbunden. Leere Antworten werden nicht als geladene Daten zwischengespeichert. Tarifprobleme, kurzfristige Abrufbeschränkungen und Tageslimits werden getrennt gemeldet. Bereits gelieferte Zahlen werden auch dann verarbeitet, wenn die Antwort einen zusätzlichen Anbieterhinweis enthält.
+
 Für den Betrieb sind folgende Schritte nötig:
 
 1. Einen eigenen Alpha-Vantage-Zugangsschlüssel anlegen.

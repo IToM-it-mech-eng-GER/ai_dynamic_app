@@ -9,6 +9,7 @@ import {
   getMissingAnalysisSections,
   hasAnalysisData,
   importAnalysisState,
+  validateAnalysisService,
   mergeAnalysisSecurityData,
   normalizeWkn,
   removeAnalysisFundamental,
@@ -18,7 +19,7 @@ import {
   setSecurityActive,
   upsertAnalysisFundamental,
   upsertAnalysisPrice,
-} from "./analysis-model.js?v=data-transfer1";
+} from "./analysis-model.js?v=service-check1";
 
 const PASSWORD_HASH = "d82494f05d6917ba02f7aaa29689ccb444bb73f20380876cb05d1f37537b7892";
 const CACHE_AGE_MS = 24 * 60 * 60 * 1000;
@@ -70,6 +71,7 @@ const elements = {
   exportButton: document.querySelector("#analysis-export"),
   importButton: document.querySelector("#analysis-import"),
   importFile: document.querySelector("#analysis-import-file"),
+  serviceCheck: document.querySelector("#analysis-service-check"),
   products: document.querySelector("#analysis-products"),
   empty: document.querySelector("#analysis-empty"),
   count: document.querySelector("#analysis-count"),
@@ -208,10 +210,7 @@ function findCachedSecurity(wkn) {
 }
 
 async function fetchAsset(security, sections = getMissingAnalysisSections(security)) {
-  if (!ANALYSIS_API_BASE_URL) {
-    throw new Error("Der Online-Datendienst ist noch nicht verbunden.");
-  }
-
+  await checkAnalysisService();
   const url = new URL("asset", `${ANALYSIS_API_BASE_URL.replace(/\/$/, "")}/`);
   url.searchParams.set("wkn", security.wkn);
   if (sections.length) url.searchParams.set("sections", sections.join(","));
@@ -222,6 +221,18 @@ async function fetchAsset(security, sections = getMissingAnalysisSections(securi
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.error || "Die Marktdaten konnten nicht geladen werden.");
   return payload;
+}
+
+async function checkAnalysisService() {
+  if (!ANALYSIS_API_BASE_URL) {
+    throw new Error("Der Online-Datendienst ist noch nicht verbunden.");
+  }
+  const url = new URL("status", `${ANALYSIS_API_BASE_URL.replace(/\/$/, "")}/`);
+  const response = await fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" });
+  if (response.status === 404) validateAnalysisService({});
+  if (!response.ok) throw new Error("Der Datendienst ist nicht erreichbar oder erlaubt dieser Webseite keinen Zugriff. Es wurde keine Anbieterabfrage ausgeführt.");
+  const payload = await response.json().catch(() => ({}));
+  validateAnalysisService(payload);
 }
 
 function createButton(label, className, action, id) {
@@ -753,6 +764,16 @@ elements.addButton.addEventListener("click", () => {
 elements.exportButton.addEventListener("click", downloadAnalysisData);
 elements.importButton.addEventListener("click", () => elements.importFile.click());
 elements.importFile.addEventListener("change", importAnalysisFile);
+elements.serviceCheck.addEventListener("click", async () => {
+  elements.serviceCheck.disabled = true;
+  setStatus("Datendienst wird ohne Marktdatenabruf geprüft …");
+  try {
+    await checkAnalysisService();
+    setStatus("Der Datendienst ist erreichbar und ein Zugangsschlüssel ist hinterlegt. Es wurden keine Marktdaten abgefragt.", "success");
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "Die Dienstprüfung ist fehlgeschlagen.", "error");
+  } finally { elements.serviceCheck.disabled = false; }
+});
 window.addEventListener("storage", event => {
   if (event.key !== ANALYSIS_STORAGE_KEY && event.key !== null) return;
   state = readAnalysisState(event.newValue);

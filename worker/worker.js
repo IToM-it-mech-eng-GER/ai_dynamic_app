@@ -1,6 +1,7 @@
 const OPENFIGI_URL = "https://api.openfigi.com/v3/mapping";
 const ALPHA_VANTAGE_URL = "https://www.alphavantage.co/query";
 const CACHE_SECONDS = 86400;
+const API_VERSION = 2;
 const WKN_PATTERN = /^[A-HJ-NP-Z0-9]{6}$/;
 
 function safeText(value, maxLength = 160) {
@@ -8,19 +9,34 @@ function safeText(value, maxLength = 160) {
 }
 
 export function alphaProviderError(payload = {}) {
-  const message = safeText(payload.Note || payload.Information, 500);
+  const message = [payload.Note, payload.Information, payload["Error Message"]]
+    .filter(Boolean).map(value => safeText(value, 1000)).join(" ");
   const normalized = message.toLowerCase();
   if (!normalized) return "";
   if (/(invalid|missing|not valid).*(api\s*key|apikey)|(api\s*key|apikey).*(invalid|missing|not valid)/.test(normalized)) {
     return "Der Alpha-Vantage-Schlüssel ist ungültig oder fehlt.";
   }
-  if (/rate limit|call frequency|requests per day|calls per day|higher api call volume/.test(normalized)) {
-    return "Das tägliche Abruflimit des Marktdatenanbieters ist erreicht.";
-  }
   if (/premium endpoint|premium api|premium membership/.test(normalized)) {
     return "Diese Marktdaten benötigen einen kostenpflichtigen Zugang.";
   }
+  if (/requests per day|calls per day|daily.*limit/.test(normalized)) {
+    return "Das tägliche Abruflimit des Marktdatenanbieters ist erreicht.";
+  }
+  if (/rate limit|call frequency|requests per minute|calls per minute/.test(normalized)) {
+    return "Der Marktdatenanbieter begrenzt die Abrufhäufigkeit. Bitte später erneut versuchen.";
+  }
+  if (payload["Error Message"]) return "Der Marktdatenanbieter kennt dieses Wertpapier oder diese Datenabfrage nicht.";
   return "Der Marktdatenanbieter hat die Anfrage abgelehnt.";
+}
+
+function hasProviderData(functionName, payload) {
+  if (functionName.startsWith("TIME_SERIES_")) return parseWeeklyPrices(payload).length > 0;
+  if (["INCOME_STATEMENT", "BALANCE_SHEET", "CASH_FLOW"].includes(functionName)) {
+    return Array.isArray(payload?.annualReports) && payload.annualReports.some(report => yearFromReport(report)
+      && Object.entries(report).some(([key, value]) => key !== "fiscalDateEnding" && key !== "reportedCurrency"
+        && numberOrNull(value) !== null));
+  }
+  return functionName === "SYMBOL_SEARCH" && Array.isArray(payload?.bestMatches) && payload.bestMatches.length > 0;
 }
 
 function numberOrNull(value) {
@@ -220,14 +236,18 @@ export async function alphaRequest(functionName, parameters, apiKey, cache) {
       console.warn("Alpha Vantage cache could not be read", { functionName });
     }
   }
-  if (cached) return cached.json();
+  if (cached) {
+    const saved = await cached.json();
+    if (hasProviderData(functionName, saved)) return saved;
+  }
 
   const url = new URL(ALPHA_VANTAGE_URL);
   url.searchParams.set("function", functionName);
   Object.entries(parameters).forEach(([key, value]) => url.searchParams.set(key, value));
   url.searchParams.set("apikey", apiKey);
   const payload = await fetchJson(url, { headers: { Accept: "application/json" } }, "Der Marktdatenanbieter");
-  const providerError = alphaProviderError(payload);
+  const receivedData = hasProviderData(functionName, payload);
+  const providerError = receivedData ? "" : alphaProviderError(payload);
   if (providerError) {
     console.warn("Alpha Vantage rejected request", {
       functionName,
@@ -235,7 +255,7 @@ export async function alphaRequest(functionName, parameters, apiKey, cache) {
     });
     throw new Error(providerError);
   }
-  if (payload["Error Message"]) throw new Error("Der Marktdatenanbieter kennt dieses Wertpapier nicht.");
+  if (!receivedData) throw new Error("Der Marktdatenanbieter hat für diesen Datenbereich keine verwendbaren Werte geliefert.");
   if (cache) {
     try {
       await cache.put(cacheKey, new Response(JSON.stringify(payload), {
@@ -366,7 +386,7 @@ export async function loadAsset(wkn, env, cache, options = {}) {
 
   return {
     wkn,
-    fetchedAt: new Date().toISOString(),
+    fetchedAt: prices.length || fundamentals.length ? new Date().toISOString() : "",
     instrument,
     prices,
     fundamentals,
@@ -411,6 +431,10 @@ async function handleRequest(request, env, context) {
   if (request.method !== "GET") return jsonResponse({ error: "Methode nicht erlaubt." }, 405, origin);
 
   const url = new URL(request.url);
+  if (url.pathname === "/status") {
+    return jsonResponse({ apiVersion: API_VERSION, marketDataConfigured: Boolean(env.ALPHA_VANTAGE_API_KEY),
+      sections: ["prices", "income", "balance", "cashflow"] }, 200, origin, "no-store");
+  }
   if (url.pathname !== "/asset") return jsonResponse({ error: "Nicht gefunden." }, 404, origin);
   const wkn = validateWkn(url.searchParams.get("wkn"));
   if (!wkn) return jsonResponse({ error: "Ungültige WKN." }, 400, origin);
@@ -426,8 +450,11 @@ async function handleRequest(request, env, context) {
     exchange: safeText(url.searchParams.get("exchange"), 60),
   };
 
+  if (url.searchParams.has("sections") && sections.length === 0) {
+    return jsonResponse({ error: "Bitte mindestens einen gültigen Datenbereich auswählen." }, 400, origin);
+  }
   const cache = caches.default;
-  const cacheKey = new Request(`https://analysis-cache.invalid${url.pathname}?${url.searchParams.toString()}`);
+  const cacheKey = new Request(`https://analysis-cache.invalid/v${API_VERSION}${url.pathname}?${url.searchParams.toString()}`);
   const cached = await cache.match(cacheKey);
   if (cached) {
     const data = await cached.json();

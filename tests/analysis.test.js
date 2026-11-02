@@ -10,6 +10,7 @@ import {
   getFiveYearFundamentals,
   hasAnalysisData,
   importAnalysisState,
+  validateAnalysisService,
   mergeAnalysisSecurityData,
   normalizeWkn,
   removeAnalysisFundamental,
@@ -20,6 +21,13 @@ import {
   upsertAnalysisFundamental,
   upsertAnalysisPrice,
 } from "../js/analysis-model.js";
+
+test("verhindert Anbieterabrufe bei veraltetem oder unvollständig eingerichtetem Datendienst", () => {
+  assert.throws(() => validateAnalysisService({}), /aktualisiert/);
+  assert.throws(() => validateAnalysisService({ apiVersion: 1, marketDataConfigured: true }), /aktualisiert/);
+  assert.throws(() => validateAnalysisService({ apiVersion: 2, marketDataConfigured: false }), /Zugangsschlüssel/);
+  assert.doesNotThrow(() => validateAnalysisService({ apiVersion: 2, marketDataConfigured: true }));
+});
 
 test("überträgt eine Datensicherung in einen anderen Browser ohne vorhandene Teilwerte zu verlieren", () => {
   const existing = createAnalysisSecurity({ id: "local", wkn: "A2QA4J", purchaseDate: "2025-03-14", purchasePrice: 75.26,

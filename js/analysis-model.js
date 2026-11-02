@@ -1,5 +1,14 @@
 export const ANALYSIS_STORAGE_KEY = "renditeatlas-analysis-v1";
 
+export function validateAnalysisService(status) {
+  if (status?.apiVersion !== 2) {
+    throw new Error("Der Datendienst muss in Cloudflare aktualisiert werden. Es wurde keine Anbieterabfrage ausgeführt.");
+  }
+  if (status.marketDataConfigured !== true) {
+    throw new Error("Im Cloudflare-Datendienst fehlt der Zugangsschlüssel. Es wurde keine Anbieterabfrage ausgeführt.");
+  }
+}
+
 const ANALYSIS_COLORS = ["#3d50c5", "#167d78", "#ca4f70", "#ff6b16", "#7b5cc7", "#2a9d55"];
 const WKN_PATTERN = /^[A-HJ-NP-Z0-9]{6}$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;

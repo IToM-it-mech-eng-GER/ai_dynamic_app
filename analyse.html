@@ -53,6 +53,7 @@
       <div class="analysis-data-tools" aria-label="Datensicherung">
         <button class="analysis-secondary-button" id="analysis-export" type="button">Daten herunterladen</button>
         <button class="analysis-secondary-button" id="analysis-import" type="button">Daten laden</button>
+        <button class="analysis-secondary-button" id="analysis-service-check" type="button">Datendienst prüfen</button>
         <input id="analysis-import-file" type="file" accept=".json,application/json" hidden />
         <span>Alle Wertpapiere und vorhandenen Zahlen sichern oder auf einem anderen Gerät laden.</span>
       </div>
@@ -163,7 +164,7 @@
           <button class="dialog-close" id="analysis-refresh-close" type="button" aria-label="Fenster schließen">×</button>
         </div>
         <p id="analysis-refresh-product"></p>
-        <p class="refresh-limit-note">Jedes gesetzte Häkchen verbraucht genau eine Abfrage des Tageslimits.</p>
+        <p class="refresh-limit-note">Jedes Häkchen benötigt höchstens eine Anbieterabfrage. Bereits zwischengespeicherte Antworten werden wiederverwendet.</p>
         <div class="analysis-refresh-options">
           <label>
             <input type="checkbox" value="prices" data-refresh-section="prices" />
@@ -269,6 +270,6 @@
       </form>
     </dialog>
 
-    <script type="module" src="./js/analysis.js?v=data-transfer1"></script>
+    <script type="module" src="./js/analysis.js?v=service-check1"></script>
   </body>
 </html>
